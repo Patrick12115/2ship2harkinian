@@ -71,7 +71,7 @@ void func_80B7EA60(BgIkanaBlock* this) {
 void func_80B7EB30(BgIkanaBlock* this) {
     if (this->unk_17A & (0x8 | 0x4 | 0x2 | 0x1)) {
         if (this->unk_17B < 127) {
-            this->unk_17B++;
+            this->unk_17B += 1 + (CVarGetInteger("gEnhancements.PlayerMovement.BlockSpeed", 0));
         }
     } else {
         this->unk_17B = 0;
@@ -288,7 +288,8 @@ void func_80B7F1A8(BgIkanaBlock* this) {
 void func_80B7F290(BgIkanaBlock* this, PlayState* play) {
     s32 pad;
 
-    Math_StepToF(&this->unk_16C, 2.0f, 0.4f);
+    float blockPushSpeed = (CVarGetInteger("gEnhancements.PlayerMovement.BlockSpeed", 0));
+    Math_StepToF(&this->unk_16C, 2.0f + blockPushSpeed, 0.4f + blockPushSpeed);
 
     if (Math_StepToF(this->unk_164, this->unk_168, this->unk_16C)) {
         Player* player = GET_PLAYER(play);

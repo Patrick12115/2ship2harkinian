@@ -279,7 +279,7 @@ void func_809A3BA4(ObjPzlblock* this) {
 }
 
 void func_809A3BC0(ObjPzlblock* this, PlayState* play) {
-    if (Math_StepToF(this->unk_164, this->unk_168, 2.3f)) {
+    if (Math_StepToF(this->unk_164, this->unk_168, 2.3f + (CVarGetInteger("gEnhancements.PlayerMovement.BlockSpeed", 0)))) {
         Player* player = GET_PLAYER(play);
         s32 params = OBJPZLBLOCK_GET_ROTZ(&this->dyna.actor);
         s32 pad;

@@ -480,7 +480,7 @@ void ObjOshihiki_OnActor(ObjOshihiki* this, PlayState* play) {
 void ObjOshihiki_SetupPush(ObjOshihiki* this, PlayState* play) {
     this->stateFlags |= PUSHBLOCK_SETUP_PUSH;
     this->dyna.actor.gravity = 0.0f;
-    this->pushSpeed = 2.0f;
+    this->pushSpeed = 2.0f + (CVarGetInteger("gEnhancements.PlayerMovement.BlockSpeed", 0));
     this->actionFunc = ObjOshihiki_Push;
 }
 
@@ -503,7 +503,7 @@ void ObjOshihiki_Push(ObjOshihiki* this, PlayState* play) {
         player->stateFlags2 &= ~PLAYER_STATE2_10;
         this->dyna.pushForce = 0.0f;
         this->pushDist = 0.0f;
-        this->pushSpeed = 0.0f;
+        this->pushSpeed = 0.0f + (CVarGetInteger("gEnhancements.PlayerMovement.BlockSpeed", 0));
         ObjOshihiki_SetupFall(this, play);
     } else if (stopFlag) {
         player = GET_PLAYER(play);
@@ -517,8 +517,8 @@ void ObjOshihiki_Push(ObjOshihiki* this, PlayState* play) {
         player->stateFlags2 &= ~PLAYER_STATE2_10;
         this->dyna.pushForce = 0.0f;
         this->pushDist = 0.0f;
-        this->pushSpeed = 0.0f;
-        this->timer = 10;
+        this->pushSpeed = 0.0f + (CVarGetInteger("gEnhancements.PlayerMovement.BlockSpeed", 0));
+        this->timer = 10 - (CVarGetInteger("gEnhancements.PlayerMovement.BlockSpeed", 0) * 1.5);
 
         if (this->floorBgIds[this->highestFloor] == BGCHECK_SCENE) {
             ObjOshihiki_SetupOnScene(this, play);

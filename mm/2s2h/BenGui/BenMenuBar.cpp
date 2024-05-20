@@ -540,6 +540,8 @@ void DrawEnhancementsMenu() {
         if (UIWidgets::BeginMenu("Player Movement")) {
             UIWidgets::CVarSliderInt("Climb speed", "gEnhancements.PlayerMovement.ClimbSpeed", 1, 5, 1,
                                      { .tooltip = "Increases the speed at which Link climbs vines and ladders." });
+            UIWidgets::CVarSliderInt("Block Push Speed", "gEnhancements.PlayerMovement.BlockSpeed", 1, 5, 1,
+                                     { .tooltip = "Increases the speed at which Link pushes blocks." });
 
             ImGui::EndMenu();
         }
