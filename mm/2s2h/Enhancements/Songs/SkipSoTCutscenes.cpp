@@ -1,6 +1,7 @@
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/Rando/MiscBehavior/ClockShuffle.h"
 #include "2s2h/Rando/Logic/Logic.h"
 
@@ -31,7 +32,7 @@ void RegisterSkipSoTCutscenes() {
             gSaveContext.save.eventDayCount = 0;
 
             // Set time appropriately if clock shuffle is enabled
-            if (IS_RANDO && RANDO_SAVE_OPTIONS[RO_CLOCK_SHUFFLE]) {
+            if ((IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_CLOCK_SHUFFLE]) {
                 const int earliestOwnedHalfDay = Rando::ClockItems::FindEarliestOwnedHalfDay(false);
                 if (earliestOwnedHalfDay != -1) {
                     bool isDayHalf = (earliestOwnedHalfDay % 2 == 0);

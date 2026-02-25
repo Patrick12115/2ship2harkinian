@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -30,8 +31,11 @@ void EnElforg_DrawCustom(Actor* thisx, PlayState* play) {
         return;
     }
 
-    Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_PARAM),
-                    (RandoCheckId)CUSTOM_PARAM, thisx);
+    RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_PARAM);
+    if (randoItemId == RI_JUNK) {
+        randoItemId = Rando::CurrentJunkItem((RandoCheckId)CUSTOM_PARAM);
+    }
+    Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_PARAM, thisx);
 }
 
 void EnElforg_Setup(EnElforg* enElforg) {
@@ -82,7 +86,7 @@ void EnElforg_Setup(EnElforg* enElforg) {
 
 // This handles the Stray fairy checks, as well as overriding the draw function for the Stray Fairies
 void Rando::ActorBehavior::InitEnElforgBehavior() {
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_ELFORG, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_ELFORG, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         bool invisible = actor->draw == NULL;
         EnElforg_Setup((EnElforg*)actor);
         if (invisible) {
@@ -90,7 +94,7 @@ void Rando::ActorBehavior::InitEnElforgBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_ELFORG, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_ELFORG, (IS_RANDO || IS_ARCHI), {
         *should = false;
         Actor* actor = va_arg(args, Actor*);
 
@@ -100,13 +104,13 @@ void Rando::ActorBehavior::InitEnElforgBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_KILL_CLOCK_TOWN_STRAY_FAIRY, IS_RANDO, {
+    COND_VB_SHOULD(VB_KILL_CLOCK_TOWN_STRAY_FAIRY, (IS_RANDO || IS_ARCHI), {
         auto& randoSaveCheck = RANDO_SAVE_CHECKS[RC_CLOCK_TOWN_STRAY_FAIRY];
         *should = randoSaveCheck.cycleObtained;
     });
 
     // Stray fairies that are trapped by enemies have their draw func set later on, so we need to override that as well
-    COND_VB_SHOULD(VB_SET_DRAW_FOR_SAVED_STRAY_FAIRY, IS_RANDO, {
+    COND_VB_SHOULD(VB_SET_DRAW_FOR_SAVED_STRAY_FAIRY, (IS_RANDO || IS_ARCHI), {
         *should = false;
         Actor* actor = va_arg(args, Actor*);
 

@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 
@@ -50,7 +51,7 @@ void OnOpenCantGetText(u16* textId, bool* loadFromMessageTable) {
 };
 
 void Rando::ActorBehavior::InitEnBalBehavior() {
-    bool shouldRegister = IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_TINGLE_SHOPS];
+    bool shouldRegister = (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_TINGLE_SHOPS];
 
     COND_VB_SHOULD(VB_NOT_AFFORD_TINGLE_MAP, shouldRegister, {
         EnBal* enBal = va_arg(args, EnBal*);

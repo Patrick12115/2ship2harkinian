@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -35,7 +36,7 @@ RandoCheckId Identify_Statue(u8 refId) {
 }
 
 void Rando::ActorBehavior::InitObjWarpstoneBehavior() {
-    COND_VB_SHOULD(VB_OWL_STATUE_ACTIVATE, IS_RANDO, {
+    COND_VB_SHOULD(VB_OWL_STATUE_ACTIVATE, (IS_RANDO || IS_ARCHI), {
         u8 warpstoneId = (u8)va_arg(args, u32);
         RandoCheckId randoCheckId = Identify_Statue(warpstoneId);
 
@@ -47,7 +48,7 @@ void Rando::ActorBehavior::InitObjWarpstoneBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_OWL_STATUE_BE_ACTIVE, IS_RANDO, {
+    COND_VB_SHOULD(VB_OWL_STATUE_BE_ACTIVE, (IS_RANDO || IS_ARCHI), {
         u8 warpstoneId = (u8)va_arg(args, u32);
         RandoCheckId randoCheckId = Identify_Statue(warpstoneId);
 

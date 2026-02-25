@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -7,9 +8,11 @@ extern "C" {
 
 void Rando::ActorBehavior::InitDmChar01Behavior() {
 
-    bool shouldRegisterOnSceneInit = IS_RANDO && RANDO_SAVE_OPTIONS[RO_ACCESS_DUNGEONS] == RO_ACCESS_DUNGEONS_OPEN;
+    bool shouldRegisterOnSceneInit =
+        (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_ACCESS_DUNGEONS] == RO_ACCESS_DUNGEONS_OPEN;
 
-    bool shouldRegisterVB = IS_RANDO && RANDO_SAVE_OPTIONS[RO_ACCESS_DUNGEONS] >= RO_ACCESS_DUNGEONS_FORM_OR_SONG &&
+    bool shouldRegisterVB = (IS_RANDO || IS_ARCHI) &&
+                            RANDO_SAVE_OPTIONS[RO_ACCESS_DUNGEONS] >= RO_ACCESS_DUNGEONS_FORM_OR_SONG &&
                             RANDO_SAVE_OPTIONS[RO_ACCESS_DUNGEONS] <= RO_ACCESS_DUNGEONS_SONG_ONLY;
 
     COND_VB_SHOULD(VB_OPEN_WOODFALL_FROM_SONG, shouldRegisterVB, {

@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
 #include "2s2h/Rando/Logic/Logic.h"
 #include "2s2h/Rando/StaticData/StaticData.h"
@@ -16,10 +17,10 @@ static std::vector<u8> skipCmds = {};
 static bool freePowderKegGrantActive = false;
 
 void Rando::ActorBehavior::InitEnGoBehavior() {
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_GO, IS_RANDO, [](Actor* actor) { skipCmds.clear(); });
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_GO, (IS_RANDO || IS_ARCHI), [](Actor* actor) { skipCmds.clear(); });
 
     // Medigoron - Scripted Actors
-    COND_VB_SHOULD(VB_EXEC_MSG_EVENT, IS_RANDO, {
+    COND_VB_SHOULD(VB_EXEC_MSG_EVENT, (IS_RANDO || IS_ARCHI), {
         u32 cmdId = va_arg(args, u32);
         Actor* actor = va_arg(args, Actor*);
 
@@ -127,7 +128,7 @@ void Rando::ActorBehavior::InitEnGoBehavior() {
         }
     });
 
-    COND_ID_HOOK(OnOpenText, 0x0C81, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x0C81, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         Audio_PlaySfx(NA_SE_EN_GOLON_WAKE_UP); // Original script plays this as part of the text.
         entry.msg = "Want a %rPowder Keg%w?\n";
@@ -141,7 +142,7 @@ void Rando::ActorBehavior::InitEnGoBehavior() {
         *loadFromMessageTable = false;
     });
 
-    COND_ID_HOOK(OnOpenText, 0x0C83, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x0C83, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         Audio_PlaySfx(NA_SE_EN_GOLON_WAKE_UP); // Original script plays this as part of the text.
         entry.msg = "If you can %rdestroy%w the boulder\n";
@@ -160,7 +161,7 @@ void Rando::ActorBehavior::InitEnGoBehavior() {
         *loadFromMessageTable = false;
     });
 
-    COND_ID_HOOK(OnOpenText, 0x0C86, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x0C86, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         freePowderKegGrantActive = true;
 
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
@@ -175,7 +176,7 @@ void Rando::ActorBehavior::InitEnGoBehavior() {
         *loadFromMessageTable = false;
     });
 
-    COND_ID_HOOK(OnOpenText, 0x0C87, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x0C87, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         if (freePowderKegGrantActive) {
             freePowderKegGrantActive = false;
 
@@ -190,7 +191,7 @@ void Rando::ActorBehavior::InitEnGoBehavior() {
         }
     });
 
-    COND_ID_HOOK(OnOpenText, 0x0C8D, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x0C8D, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         if (!HAS_ITEM(ITEM_POWDER_KEG)) {
             auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
             Audio_PlaySfx(NA_SE_EN_GOLON_VOICE_GENERAL); // Original script plays this as part of the text.

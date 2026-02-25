@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "CustomItem/CustomItem.h"
 
@@ -26,10 +27,13 @@ void Rando::ActorBehavior::InitEnFish2Behavior() {
             },
             [](Actor* actor, PlayState* play) {
                 auto& randoSaveCheck = RANDO_SAVE_CHECKS[CUSTOM_ITEM_PARAM];
-                RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId);
                 Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-                Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM),
-                                (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
+                RandoItemId randoItemId =
+                    Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM);
+                if (randoItemId == RI_JUNK) {
+                    randoItemId = Rando::CurrentJunkItem((RandoCheckId)CUSTOM_ITEM_PARAM);
+                }
+                Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
             });
 
         CLEAR_WEEKEVENTREG(WEEKEVENTREG_81_10);

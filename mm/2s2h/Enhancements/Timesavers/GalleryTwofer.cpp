@@ -1,6 +1,7 @@
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
@@ -36,7 +37,7 @@ void RegisterGalleryTwofer() {
             queueHeartPiece = true;
         }
 
-        if (!IS_RANDO && queueHeartPiece) {
+        if (!(IS_RANDO || IS_ARCHI) && queueHeartPiece) {
             GameInteractor::Instance->events.emplace_back(GIEventGiveItem{
                 .showGetItemCutscene = true,
                 .param = GID_HEART_PIECE,

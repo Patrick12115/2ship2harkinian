@@ -4,6 +4,7 @@
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "variables.h"
@@ -23,7 +24,7 @@ static bool isGoronSleepQueued = false;
 // This is a song tutorial, so the skip is forced on in rando for now
 void RegisterSkipLearningGoronLullaby() {
     // Played Lullaby Intro for Baby Goron
-    COND_VB_SHOULD(VB_START_CUTSCENE, CVAR || IS_RANDO, {
+    COND_VB_SHOULD(VB_START_CUTSCENE, CVAR || IS_RANDO || IS_ARCHI, {
         s16* csId = va_arg(args, s16*);
         Actor* actor = va_arg(args, Actor*);
 
@@ -69,7 +70,7 @@ void RegisterSkipLearningGoronLullaby() {
         }
     });
 
-    COND_ID_HOOK(OnActorUpdate, ACTOR_EN_GO, CVAR || IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorUpdate, ACTOR_EN_GO, CVAR || IS_RANDO || IS_ARCHI, [](Actor* actor) {
         EnGo* enGo = (EnGo*)actor;
 
         // Should only apply this to the Goron next to the Elder's Son
@@ -91,4 +92,4 @@ void RegisterSkipLearningGoronLullaby() {
     });
 }
 
-static RegisterShipInitFunc initFunc(RegisterSkipLearningGoronLullaby, { CVAR_NAME, "IS_RANDO" });
+static RegisterShipInitFunc initFunc(RegisterSkipLearningGoronLullaby, { CVAR_NAME, "IS_RANDO", "IS_ARCHI" });

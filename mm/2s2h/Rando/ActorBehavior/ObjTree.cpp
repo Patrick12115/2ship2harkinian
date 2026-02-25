@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomItem/CustomItem.h"
 #include "assets/2s2h_assets.h"
@@ -146,8 +147,11 @@ EnItem00* SpawnTreeDrop(Actor* actor) {
         [](Actor* actor, PlayState* play) {
             auto& randoSaveCheck = RANDO_SAVE_CHECKS[CUSTOM_ITEM_PARAM];
             Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-            Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM),
-                            (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
+            RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM);
+            if (randoItemId == RI_JUNK) {
+                randoItemId = Rando::CurrentJunkItem((RandoCheckId)CUSTOM_ITEM_PARAM);
+            }
+            Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
         });
 }
 
@@ -185,7 +189,7 @@ void IdentifyTreeAndSpawnItem(Actor* actor) {
 }
 
 void Rando::ActorBehavior::InitObjTreeBehavior() {
-    bool shouldRegister = IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_TREE_DROPS] != RO_GENERIC_OFF;
+    bool shouldRegister = (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_TREE_DROPS] != RO_GENERIC_OFF;
 
     COND_ID_HOOK(OnActorInit, ACTOR_EN_WOOD02, shouldRegister, IdentifyTreeAndSpawnItem);
     COND_ID_HOOK(OnActorInit, ACTOR_OBJ_TREE, shouldRegister, IdentifyTreeAndSpawnItem);
@@ -239,5 +243,5 @@ void Rando::ActorBehavior::InitObjTreeBehavior() {
         }
     });
 
-    COND_HOOK(OnSceneInit, IS_RANDO, [](s16 sceneId, s8 spawnNum) { currentlySpawnedItems.clear(); });
+    COND_HOOK(OnSceneInit, (IS_RANDO || IS_ARCHI), [](s16 sceneId, s8 spawnNum) { currentlySpawnedItems.clear(); });
 }

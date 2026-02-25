@@ -72,6 +72,68 @@ void from_json(const json& j, RandoSaveInfo& rando) {
     j.at("foundTriforcePieces").get_to(rando.foundTriforcePieces);
 }
 
+void to_json(json& j, const ArchiSaveInfo& archi) {
+    j = json{
+        { "magic", archi.magic },
+        { "version", archi.version },
+        { "flags", archi.flags },
+        { "serverHost", std::string(archi.serverHost) },
+        { "slotName", std::string(archi.slotName) },
+        { "team", archi.team },
+        { "slot", archi.slot },
+        { "sessionId", archi.sessionId },
+        { "seed", archi.seed },
+        { "lastSyncMs", archi.lastSyncMs },
+        { "receivedItemCount", archi.receivedItemCount },
+        { "checkedLocationCount", archi.checkedLocationCount },
+        { "checkedLocations", std::vector<uint8_t>(archi.checkedLocations, archi.checkedLocations + sizeof(archi.checkedLocations)) },
+        { "reserved", std::vector<uint8_t>(archi.reserved, archi.reserved + sizeof(archi.reserved)) }
+    };
+}
+
+void from_json(const json& j, ArchiSaveInfo& archi) {
+    archi.magic = j.value("magic", 0u);
+    archi.version = j.value("version", static_cast<uint16_t>(0));
+    archi.flags = j.value("flags", static_cast<uint16_t>(0));
+
+    std::string serverHost = j.value("serverHost", "");
+    std::string slotName = j.value("slotName", "");
+    strncpy(archi.serverHost, serverHost.c_str(), sizeof(archi.serverHost) - 1);
+    archi.serverHost[sizeof(archi.serverHost) - 1] = '\0';
+    strncpy(archi.slotName, slotName.c_str(), sizeof(archi.slotName) - 1);
+    archi.slotName[sizeof(archi.slotName) - 1] = '\0';
+
+    archi.team = j.value("team", 0u);
+    archi.slot = j.value("slot", 0u);
+    archi.sessionId = j.value("sessionId", 0ull);
+    archi.seed = j.value("seed", 0u);
+    archi.lastSyncMs = j.value("lastSyncMs", 0u);
+    archi.receivedItemCount = j.value("receivedItemCount", 0u);
+    archi.checkedLocationCount = j.value("checkedLocationCount", 0u);
+
+    if (j.contains("checkedLocations")) {
+        auto checkedLocs = j["checkedLocations"].get<std::vector<uint8_t>>();
+        size_t copySize = std::min(checkedLocs.size(), sizeof(archi.checkedLocations));
+        memcpy(archi.checkedLocations, checkedLocs.data(), copySize);
+        if (copySize < sizeof(archi.checkedLocations)) {
+            memset(archi.checkedLocations + copySize, 0, sizeof(archi.checkedLocations) - copySize);
+        }
+    } else {
+        memset(archi.checkedLocations, 0, sizeof(archi.checkedLocations));
+    }
+
+    if (j.contains("reserved")) {
+        auto reservedData = j["reserved"].get<std::vector<uint8_t>>();
+        size_t copySize = std::min(reservedData.size(), sizeof(archi.reserved));
+        memcpy(archi.reserved, reservedData.data(), copySize);
+        if (copySize < sizeof(archi.reserved)) {
+            memset(archi.reserved + copySize, 0, sizeof(archi.reserved) - copySize);
+        }
+    } else {
+        memset(archi.reserved, 0, sizeof(archi.reserved));
+    }
+}
+
 void to_json(json& j, const Vec3f& vec) {
     j = json{
         { "x", vec.x },
@@ -127,8 +189,12 @@ void to_json(json& j, const ShipSaveInfo& shipSaveInfo) {
         { "commitHash", commitHash },
     };
 
-    if (shipSaveInfo.saveType == SAVETYPE_RANDO) {
+    if (shipSaveInfo.saveType == SAVETYPE_RANDO || shipSaveInfo.saveType == SAVETYPE_ARCHI) {
         j["rando"] = shipSaveInfo.rando;
+    }
+
+    if (shipSaveInfo.saveType == SAVETYPE_ARCHI) {
+        j["archipelago"] = shipSaveInfo.archipelago;
     }
 }
 
@@ -142,13 +208,21 @@ void from_json(const json& j, ShipSaveInfo& shipSaveInfo) {
     j.at("respawn").get_to(shipSaveInfo.respawn);
     j.at("commitHash").get_to(shipSaveInfo.commitHash);
 
-    if (shipSaveInfo.saveType == SAVETYPE_RANDO) {
+    if (shipSaveInfo.saveType == SAVETYPE_RANDO || shipSaveInfo.saveType == SAVETYPE_ARCHI) {
         if (strcmp(shipSaveInfo.commitHash, gGitCommitHash) != 0) {
             SPDLOG_ERROR("Randomizer saves cannot be loaded from a different version.");
             throw new std::runtime_error("Randomizer saves cannot be loaded from a different version.");
         }
 
-        j.at("rando").get_to(shipSaveInfo.rando);
+        if (j.contains("rando")) {
+            j.at("rando").get_to(shipSaveInfo.rando);
+        }
+    }
+
+    if (shipSaveInfo.saveType == SAVETYPE_ARCHI) {
+        if (j.contains("archipelago")) {
+            j.at("archipelago").get_to(shipSaveInfo.archipelago);
+        }
     }
 }
 

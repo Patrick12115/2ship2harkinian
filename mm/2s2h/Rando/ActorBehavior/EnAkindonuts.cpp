@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/ShipUtils.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
@@ -54,7 +55,7 @@ void EnAkindonuts_IsEligible(RandoCheckId randoCheckId, RandoInf randoInf, bool*
 
 // This handles the checks for the business scrubs in the Southern Swamp, Goron Village, Zora Hall, and Ikana Canyon.
 void Rando::ActorBehavior::InitEnAkindonutsBehavior() {
-    COND_ID_HOOK(OnActorUpdate, ACTOR_EN_AKINDONUTS, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorUpdate, ACTOR_EN_AKINDONUTS, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         EnAkindonuts* enAkindonuts = (EnAkindonuts*)actor;
         if (enAkindonuts->actionFunc == func_80BEF360) {
             if (enAkindonuts->unk_32C & 0x40) {
@@ -89,20 +90,20 @@ void Rando::ActorBehavior::InitEnAkindonutsBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_AKINDONUTS_CONSIDER_ELIGIBLE_FOR_BEAN_REFILL, IS_RANDO, {
+    COND_VB_SHOULD(VB_AKINDONUTS_CONSIDER_ELIGIBLE_FOR_BEAN_REFILL, (IS_RANDO || IS_ARCHI), {
         EnAkindonuts_IsEligible(RC_SOUTHERN_SWAMP_SCRUB_BEANS, RANDO_INF_PURCHASED_BEANS_FROM_SOUTHERN_SWAMP_SCRUB,
                                 should);
     });
 
     // Do you know what magic beans are, sir?...
-    COND_ID_HOOK(OnOpenText, 0x15E9, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x15E9, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         EnAkindonuts_ReplacePurchaseMessage(RC_SOUTHERN_SWAMP_SCRUB_BEANS,
                                             RANDO_INF_PURCHASED_BEANS_FROM_SOUTHERN_SWAMP_SCRUB, 10, textId,
                                             loadFromMessageTable);
     });
 
     // I sell Magic Beans to Deku Scrubs,...
-    COND_ID_HOOK(OnOpenText, 0x15E1, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x15E1, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         if (!RANDO_SAVE_CHECKS[RC_SOUTHERN_SWAMP_SCRUB_BEANS].shuffled) {
             return;
         }
@@ -120,12 +121,12 @@ void Rando::ActorBehavior::InitEnAkindonutsBehavior() {
     });
 
     // Oh, you don't know how to use magic beans?...
-    COND_ID_HOOK(OnOpenText, 0x15EC, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x15EC, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         EnAkindonuts_ReplaceNotEligibleMessage(RANDO_INF_PURCHASED_BEANS_FROM_SOUTHERN_SWAMP_SCRUB, textId,
                                                loadFromMessageTable);
     });
 
-    COND_VB_SHOULD(VB_AKINDONUTS_CONSIDER_ELIGIBLE_FOR_POTION_REFILL, IS_RANDO, {
+    COND_VB_SHOULD(VB_AKINDONUTS_CONSIDER_ELIGIBLE_FOR_POTION_REFILL, (IS_RANDO || IS_ARCHI), {
         EnAkindonuts* enAkindonuts = va_arg(args, EnAkindonuts*);
         switch (ENAKINDONUTS_GET_3(&enAkindonuts->actor)) {
             case 2:
@@ -140,21 +141,21 @@ void Rando::ActorBehavior::InitEnAkindonutsBehavior() {
     });
 
     // I'll sell you a Green Potion for 40 Rupees!
-    COND_ID_HOOK(OnOpenText, 0x1612, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x1612, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         EnAkindonuts_ReplacePurchaseMessage(RC_ZORA_HALL_SCRUB_POTION_REFILL,
                                             RANDO_INF_PURCHASED_POTION_FROM_ZORA_HALL_SCRUB, 40, textId,
                                             loadFromMessageTable);
     });
 
     // Don't you need any Blue Potion in case you get cursed?...
-    COND_ID_HOOK(OnOpenText, 0x1626, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x1626, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         EnAkindonuts_ReplacePurchaseMessage(RC_IKANA_CANYON_SCRUB_POTION_REFILL,
                                             RANDO_INF_PURCHASED_POTION_FROM_IKANA_CANYON_SCRUB, 100, textId,
                                             loadFromMessageTable);
     });
 
     // You get the potion only! if you don't have an empty bottle... (Used for both potion scrubs)
-    COND_ID_HOOK(OnOpenText, 0x1613, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x1613, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         Player* player = GET_PLAYER(gPlayState);
         if (player->talkActor == nullptr || player->talkActor->id != ACTOR_EN_AKINDONUTS) {
             return;
@@ -172,32 +173,32 @@ void Rando::ActorBehavior::InitEnAkindonutsBehavior() {
     });
 
     // TODO: Should there be a bomb bag requirement here still?
-    COND_VB_SHOULD(VB_AKINDONUTS_CONSIDER_ELIGIBLE_FOR_BOMB_BAG, IS_RANDO, {
+    COND_VB_SHOULD(VB_AKINDONUTS_CONSIDER_ELIGIBLE_FOR_BOMB_BAG, (IS_RANDO || IS_ARCHI), {
         EnAkindonuts_IsEligible(RC_GORON_VILLAGE_SCRUB_BOMB_BAG, RANDO_INF_PURCHASED_BOMB_BAG_FROM_GORON_VILLAGE_SCRUB,
                                 should);
     });
 
-    COND_VB_SHOULD(VB_AKINDONUTS_CONSIDER_BOMB_BAG_PURCHASED, IS_RANDO, {
+    COND_VB_SHOULD(VB_AKINDONUTS_CONSIDER_BOMB_BAG_PURCHASED, (IS_RANDO || IS_ARCHI), {
         if (RANDO_SAVE_CHECKS[RC_GORON_VILLAGE_SCRUB_BOMB_BAG].shuffled) {
             *should = Flags_GetRandoInf(RANDO_INF_PURCHASED_BOMB_BAG_FROM_GORON_VILLAGE_SCRUB);
         }
     });
 
     // I'll give you my Biggest Bomb Bag...
-    COND_ID_HOOK(OnOpenText, 0x1600, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x1600, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         EnAkindonuts_ReplacePurchaseMessage(RC_GORON_VILLAGE_SCRUB_BOMB_BAG,
                                             RANDO_INF_PURCHASED_BOMB_BAG_FROM_GORON_VILLAGE_SCRUB, 200, textId,
                                             loadFromMessageTable);
     });
 
     // If you don't have a Big Bomb Bag...
-    COND_ID_HOOK(OnOpenText, 0x1602, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x1602, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         EnAkindonuts_ReplaceNotEligibleMessage(RANDO_INF_PURCHASED_BOMB_BAG_FROM_GORON_VILLAGE_SCRUB, textId,
                                                loadFromMessageTable);
     });
 
     // What? You already have a Big Bomb Bag?...
-    COND_ID_HOOK(OnOpenText, 0x1601, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x1601, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         if (RANDO_SAVE_CHECKS[RC_GORON_VILLAGE_SCRUB_BOMB_BAG].shuffled) {
             auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
             entry.msg = "What? You already bought that from me, Only one purchase per customer allowed!\xE0";

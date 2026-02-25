@@ -3,6 +3,7 @@
 #include "2s2h/ShipUtils.h"
 #include <set>
 #include "2s2h/Rando/Logic/Logic.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include <variables.h>
@@ -57,7 +58,7 @@ RandoCheckId GetProgressiveCheckInLogic() {
 }
 
 void Rando::MiscBehavior::SariasSongHint() {
-    bool shouldRegister = IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SONG_SARIA];
+    bool shouldRegister = (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SONG_SARIA];
 
     // Fix vanilla issue where saria's song plays the majoras lair fanfare
     if (shouldRegister) {

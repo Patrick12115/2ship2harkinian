@@ -657,3 +657,4 @@
 /* 0x280 */ DEFINE_OBJECT(object_fusen, OBJECT_FUSEN)
 /* 0x281 */ DEFINE_OBJECT(object_ending_obj, OBJECT_ENDING_OBJ)
 /* 0x282 */ DEFINE_OBJECT(object_gi_mask13, OBJECT_GI_MASK13)
+/* 0x283 */ DEFINE_OBJECT(object_archipelago_item, OBJECT_ARCHIPELAGO_ITEM)

@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -25,7 +26,7 @@ void EndEnFsnDialogue(EnFsn* actor) {
 }
 
 void Rando::ActorBehavior::InitEnFsnBehavior() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         Player* player = GET_PLAYER(gPlayState);
@@ -62,7 +63,7 @@ void Rando::ActorBehavior::InitEnFsnBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_GIVE_KEATON_MASK, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_KEATON_MASK, (IS_RANDO || IS_ARCHI), {
         EnFsn* enFsn = va_arg(args, EnFsn*);
         RANDO_SAVE_CHECKS[RC_KAFEIS_HIDEOUT_KEATON_MASK].eligible = true;
         enFsn->flags |= ENFSN_GAVE_KEATONS_MASK;
@@ -71,7 +72,7 @@ void Rando::ActorBehavior::InitEnFsnBehavior() {
         *should = false;
     });
 
-    COND_VB_SHOULD(VB_GIVE_LETTER_TO_MAMA, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_LETTER_TO_MAMA, (IS_RANDO || IS_ARCHI), {
         EnFsn* enFsn = va_arg(args, EnFsn*);
         RANDO_SAVE_CHECKS[RC_KAFEIS_HIDEOUT_LETTER_TO_MAMA].eligible = true;
         enFsn->flags |= ENFSN_END_CONVERSATION;

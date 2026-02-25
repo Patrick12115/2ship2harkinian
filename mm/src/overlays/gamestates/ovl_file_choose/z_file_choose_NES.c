@@ -14,6 +14,7 @@
 #include "misc/title_static/title_static.h"
 #include "2s2h/Enhancements/FrameInterpolation/FrameInterpolation.h"
 #include "2s2h/GameInteractor/GameInteractor.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h_assets.h"
 #include <string.h>
 #include "BenPort.h"
@@ -26,6 +27,10 @@ f32 D_808144F18 = 100.0f;
 s32 D_808144F1C = 0;
 
 FileSelectState* gFileSelectState = NULL;
+
+// Extern declaration for Archi save tracking
+extern u8 isArchi[];
+extern char fileSlotNames[][32];
 
 // 2S2H [Enhancement] To handle File 3 support and toggle, we undef the file num max and replace it for a CVar check
 #undef FILE_NUM_MAX
@@ -255,6 +260,11 @@ void FileSelect_UpdateMainMenu(GameState* thisx) {
         if (this->buttonIndex <= FS_BTN_MAIN_FILE_3) {
             if (!gSaveContext.flashSaveAvailable) {
                 if (!NO_FLASH_SLOT_OCCUPIED(sramCtx, this->buttonIndex)) {
+                    // Empty slot - run through the same VB hook as occupied slots so
+                    // the Archipelago handler can block entry and show notifications.
+                    if (!GameInteractor_Should(VB_FILE_SELECT_CONFIRM_FILE, true, this->buttonIndex)) {
+                        return;
+                    }
                     Audio_PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
                     this->configMode = CM_ROTATE_TO_NAME_ENTRY;
                     this->kbdButton = FS_KBD_BTN_NONE;
@@ -271,6 +281,11 @@ void FileSelect_UpdateMainMenu(GameState* thisx) {
                     this->nameEntryBoxAlpha = 0;
                     memcpy(&this->fileNames[this->buttonIndex], &sEmptyName, ARRAY_COUNT(sEmptyName));
                 } else {
+                    // Occupied slot - check if it's an Archi save that requires connection
+                    if (!GameInteractor_Should(VB_FILE_SELECT_CONFIRM_FILE, true, this->buttonIndex)) {
+                        // File cannot be accessed, hook handled error message
+                        return;
+                    }
                     Audio_PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
                     this->actionTimer = 4;
                     this->selectMode = SM_FADE_MAIN_TO_SELECT;
@@ -279,6 +294,11 @@ void FileSelect_UpdateMainMenu(GameState* thisx) {
                     this->nextTitleLabel = FS_TITLE_OPEN_FILE;
                 }
             } else if (!SLOT_OCCUPIED(this, this->buttonIndex)) {
+                // Empty slot - run through the same VB hook as occupied slots so
+                // the Archipelago handler can block entry and show notifications.
+                if (!GameInteractor_Should(VB_FILE_SELECT_CONFIRM_FILE, true, this->buttonIndex)) {
+                    return;
+                }
                 Audio_PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
                 this->configMode = CM_ROTATE_TO_NAME_ENTRY;
                 this->kbdButton = FS_KBD_BTN_NONE;
@@ -295,6 +315,11 @@ void FileSelect_UpdateMainMenu(GameState* thisx) {
                 this->nameEntryBoxAlpha = 0;
                 memcpy(&this->fileNames[this->buttonIndex], &sEmptyName, ARRAY_COUNT(sEmptyName));
             } else {
+                // Occupied slot - check if it's an Archi save that requires connection
+                if (!GameInteractor_Should(VB_FILE_SELECT_CONFIRM_FILE, true, this->buttonIndex)) {
+                    // File cannot be accessed, hook handled error message
+                    return;
+                }
                 Audio_PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
                 this->actionTimer = 4;
                 this->selectMode = SM_FADE_MAIN_TO_SELECT;

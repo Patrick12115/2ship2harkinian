@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "CustomItem/CustomItem.h"
 
@@ -8,7 +9,7 @@ extern "C" {
 }
 
 void Rando::ActorBehavior::InitEnRuppecrowBehavior() {
-    COND_VB_SHOULD(VB_GUAY_DROP_RUPEE, IS_RANDO, {
+    COND_VB_SHOULD(VB_GUAY_DROP_RUPEE, (IS_RANDO || IS_ARCHI), {
         EnRuppecrow* refActor = va_arg(args, EnRuppecrow*);
         uint32_t rupeeIndex = refActor->rupeeIndex;
 
@@ -25,8 +26,12 @@ void Rando::ActorBehavior::InitEnRuppecrowBehavior() {
             [](Actor* actor, PlayState* play) {
                 auto& randoSaveCheck = RANDO_SAVE_CHECKS[CUSTOM_ITEM_PARAM];
                 Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-                Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM),
-                                (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
+                RandoItemId randoItemId =
+                    Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM);
+                if (randoItemId == RI_JUNK) {
+                    randoItemId = Rando::CurrentJunkItem((RandoCheckId)CUSTOM_ITEM_PARAM);
+                }
+                Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
             });
 
         // Apply rupee drop heavy gravity

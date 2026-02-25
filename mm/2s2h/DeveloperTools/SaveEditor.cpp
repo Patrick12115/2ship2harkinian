@@ -8,6 +8,7 @@
 #include "2s2h/BenGui/Notification.h"
 #include "2s2h/Rando/Spoiler/Spoiler.h"
 #include "2s2h/ShipUtils.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 #include "interface/icon_item_dungeon_static/icon_item_dungeon_static.h"
 #include "archives/icon_item_24_static/icon_item_24_static_yar.h"
@@ -2369,7 +2370,7 @@ void SaveEditorWindow::DrawElement() {
             ImGui::EndTabItem();
         }
 
-        if (IS_RANDO) {
+        if (IS_RANDO || IS_ARCHI) {
             if (ImGui::BeginTabItem("Rando")) {
                 DrawRandoTab();
                 ImGui::EndTabItem();

@@ -4,6 +4,7 @@
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "overlays/actors/ovl_En_Rz/z_en_rz.h"
@@ -25,7 +26,7 @@ void RegisterSkipRosaSistersDance() {
                 enRz->actionFunc = func_80BFC270;
                 // Queue the item check, as Actor_OfferGetItem won't work normally
                 // WEEKEVENTREG_RECEIVED_ROSA_SISTERS_HEART_PIECE is set once the player obtains this Heart Piece.
-                if (!CHECK_WEEKEVENTREG(WEEKEVENTREG_RECEIVED_ROSA_SISTERS_HEART_PIECE) && !IS_RANDO) {
+                if (!CHECK_WEEKEVENTREG(WEEKEVENTREG_RECEIVED_ROSA_SISTERS_HEART_PIECE) && !(IS_RANDO || IS_ARCHI)) {
                     GameInteractor::Instance->events.emplace_back(GIEventGiveItem{
                         .showGetItemCutscene = true,
                         .param = GID_HEART_PIECE,

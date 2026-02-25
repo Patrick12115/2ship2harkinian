@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -11,16 +12,17 @@ void EnMaYto_PostMilkRunEnd(EnMaYto* enMaYto, PlayState* play);
 // This interaction is skipped by the SkipLearningSongOfHealing and forced on for rando for now, this file simply
 // handles queuing up the checks to be given.
 void Rando::ActorBehavior::InitEnMaYtoBehavior() {
-    COND_VB_SHOULD(VB_GIVE_ROMANI_MASK, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ROMANI_MASK, (IS_RANDO || IS_ARCHI), {
         EnMaYto* enMaYto = va_arg(args, EnMaYto*);
         *should = false;
         enMaYto->unk310 = 3;
         enMaYto->actionFunc = EnMaYto_PostMilkRunEnd;
     });
 
-    COND_VB_SHOULD(VB_HAVE_ROMANI_MASK, IS_RANDO, { *should = RANDO_SAVE_CHECKS[RC_CREMIA_ESCORT].cycleObtained; });
+    COND_VB_SHOULD(VB_HAVE_ROMANI_MASK, (IS_RANDO || IS_ARCHI),
+                   { *should = RANDO_SAVE_CHECKS[RC_CREMIA_ESCORT].cycleObtained; });
 
-    COND_VB_SHOULD(VB_PLAY_TRANSITION_CS, IS_RANDO, {
+    COND_VB_SHOULD(VB_PLAY_TRANSITION_CS, (IS_RANDO || IS_ARCHI), {
         if (gSaveContext.save.cutsceneIndex == 0x0 && gSaveContext.save.entrance == ENTRANCE(TERMINA_FIELD, 13) &&
             !RANDO_SAVE_CHECKS[RC_CREMIA_ESCORT].cycleObtained) {
             RANDO_SAVE_CHECKS[RC_CREMIA_ESCORT].eligible = true;

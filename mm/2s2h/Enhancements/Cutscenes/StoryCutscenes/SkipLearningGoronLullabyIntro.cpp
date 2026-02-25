@@ -4,6 +4,7 @@
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "variables.h"
@@ -15,7 +16,7 @@ extern "C" {
 #define CVAR CVarGetInteger(CVAR_NAME, 0)
 
 void RegisterSkipLearningGoronLullabyIntro() {
-    COND_VB_SHOULD(VB_JG_THINK_YOU_KNOW_LULLABY, CVAR || IS_RANDO, {
+    COND_VB_SHOULD(VB_JG_THINK_YOU_KNOW_LULLABY, CVAR || IS_RANDO || IS_ARCHI, {
         // Always consider lullaby known so we don't go into the cutscene to learn it
         *should = true;
 
@@ -46,4 +47,4 @@ void RegisterSkipLearningGoronLullabyIntro() {
     });
 }
 
-static RegisterShipInitFunc initFunc(RegisterSkipLearningGoronLullabyIntro, { CVAR_NAME, "IS_RANDO" });
+static RegisterShipInitFunc initFunc(RegisterSkipLearningGoronLullabyIntro, { CVAR_NAME, "IS_RANDO", "IS_ARCHI" });

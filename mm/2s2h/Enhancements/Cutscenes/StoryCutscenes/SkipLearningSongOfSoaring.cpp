@@ -4,6 +4,7 @@
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "variables.h"
@@ -21,35 +22,36 @@ void RegisterSkipLearningSongOfSoaring() {
      * determined by whether the player has obtained the Song of Soaring or not. We bypass the cutscene by always
      * setting this textId.
      */
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_TIME_TAG, CVAR || IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_TIME_TAG, CVAR || IS_RANDO || IS_ARCHI, [](Actor* actor) {
         if (TIMETAG_GET_TYPE(actor) == TIMETAG_SOARING_ENGRAVING) {
             actor->textId = ENGRAVING_TEXT_ID;
         }
     });
 
     // Then, once this textId is opened for the first time, give the player the reward. (unless we're in rando)
-    COND_ID_HOOK(OnOpenText, ENGRAVING_TEXT_ID, CVAR && !IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
-        if (!CHECK_QUEST_ITEM(QUEST_SONG_SOARING)) {
-            GameInteractor::Instance->events.emplace_back(GIEventGiveItem{
-                .showGetItemCutscene = !CVarGetInteger("gEnhancements.Cutscenes.SkipGetItemCutscenes", 0),
-                .giveItem =
-                    [](Actor* actor, PlayState* play) {
-                        if (CUSTOM_ITEM_FLAGS & CustomItem::GIVE_ITEM_CUTSCENE) {
-                            CustomMessage::SetActiveCustomMessage("You learned the Song of Soaring!",
-                                                                  { .textboxType = 2 });
-                        } else {
-                            CustomMessage::StartTextbox("You learned the Song of Soaring!\x1C\x02\x10",
-                                                        { .textboxType = 2 });
-                        }
-                        Item_Give(gPlayState, ITEM_SONG_SOARING);
-                    },
-                .drawItem =
-                    [](Actor* actor, PlayState* play) {
-                        Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-                        Rando::DrawItem(RI_SONG_SOARING);
-                    } });
-        }
-    });
+    COND_ID_HOOK(OnOpenText, ENGRAVING_TEXT_ID, CVAR && !(IS_RANDO || IS_ARCHI),
+                 [](u16* textId, bool* loadFromMessageTable) {
+                     if (!CHECK_QUEST_ITEM(QUEST_SONG_SOARING)) {
+                         GameInteractor::Instance->events.emplace_back(GIEventGiveItem{
+                             .showGetItemCutscene = !CVarGetInteger("gEnhancements.Cutscenes.SkipGetItemCutscenes", 0),
+                             .giveItem =
+                                 [](Actor* actor, PlayState* play) {
+                                     if (CUSTOM_ITEM_FLAGS & CustomItem::GIVE_ITEM_CUTSCENE) {
+                                         CustomMessage::SetActiveCustomMessage("You learned the Song of Soaring!",
+                                                                               { .textboxType = 2 });
+                                     } else {
+                                         CustomMessage::StartTextbox("You learned the Song of Soaring!\x1C\x02\x10",
+                                                                     { .textboxType = 2 });
+                                     }
+                                     Item_Give(gPlayState, ITEM_SONG_SOARING);
+                                 },
+                             .drawItem =
+                                 [](Actor* actor, PlayState* play) {
+                                     Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
+                                     Rando::DrawItem(RI_SONG_SOARING);
+                                 } });
+                     }
+                 });
 }
 
 static RegisterShipInitFunc initFunc(RegisterSkipLearningSongOfSoaring, { CVAR_NAME, "IS_RANDO" });

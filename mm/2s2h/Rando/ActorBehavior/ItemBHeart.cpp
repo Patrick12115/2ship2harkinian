@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -17,8 +18,11 @@ void ItemBHeart_DrawCustom(Actor* thisx, PlayState* play) {
 
     auto randoSaveCheck = RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId];
 
-    Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, randoStaticCheck.randoCheckId),
-                    randoStaticCheck.randoCheckId, thisx);
+    RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, randoStaticCheck.randoCheckId);
+    if (randoItemId == RI_JUNK) {
+        randoItemId = Rando::CurrentJunkItem(randoStaticCheck.randoCheckId);
+    }
+    Rando::DrawItem(randoItemId, randoStaticCheck.randoCheckId, thisx);
 }
 
 void ItemBHeart_UpdateCustom(Actor* thisx, PlayState* play) {
@@ -36,7 +40,7 @@ void ItemBHeart_UpdateCustom(Actor* thisx, PlayState* play) {
 }
 
 void Rando::ActorBehavior::InitItemBHeartBehavior() {
-    COND_ID_HOOK(OnActorInit, ACTOR_ITEM_B_HEART, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_ITEM_B_HEART, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         ItemBHeart* itemBHeart = (ItemBHeart*)actor;
 
         auto randoStaticCheck =

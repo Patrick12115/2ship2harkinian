@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/Rando/Logic/Logic.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
@@ -144,9 +145,9 @@ void OverrideMainJsText(u16* textId, bool* loadFromMessageTable) {
 }
 
 void Rando::ActorBehavior::InitEnJsBehavior() {
-    COND_VB_SHOULD(VB_JS_CONSIDER_ELIGIBLE_FOR_DEITY, IS_RANDO, { *should = false; });
+    COND_VB_SHOULD(VB_JS_CONSIDER_ELIGIBLE_FOR_DEITY, (IS_RANDO || IS_ARCHI), { *should = false; });
 
-    COND_VB_SHOULD(VB_JS_OVERRIDE_MASK_CHECK, IS_RANDO, {
+    COND_VB_SHOULD(VB_JS_OVERRIDE_MASK_CHECK, (IS_RANDO || IS_ARCHI), {
         s32* jsType = va_arg(args, s32*);
         bool* result = va_arg(args, bool*);
 
@@ -172,9 +173,9 @@ void Rando::ActorBehavior::InitEnJsBehavior() {
         }
     });
 
-    COND_ID_HOOK(OnOpenText, 0x2215, IS_RANDO, OverrideSubJsText);
-    COND_ID_HOOK(OnOpenText, 0x2216, IS_RANDO, OverrideSubJsText);
-    COND_ID_HOOK(OnOpenText, 0x21FC, IS_RANDO, OverrideMainJsText);
-    COND_ID_HOOK(OnOpenText, 0x21FE, IS_RANDO, OverrideMainJsText);
-    COND_ID_HOOK(OnOpenText, 0x21FD, IS_RANDO, OverrideMainJsText);
+    COND_ID_HOOK(OnOpenText, 0x2215, (IS_RANDO || IS_ARCHI), OverrideSubJsText);
+    COND_ID_HOOK(OnOpenText, 0x2216, (IS_RANDO || IS_ARCHI), OverrideSubJsText);
+    COND_ID_HOOK(OnOpenText, 0x21FC, (IS_RANDO || IS_ARCHI), OverrideMainJsText);
+    COND_ID_HOOK(OnOpenText, 0x21FE, (IS_RANDO || IS_ARCHI), OverrideMainJsText);
+    COND_ID_HOOK(OnOpenText, 0x21FD, (IS_RANDO || IS_ARCHI), OverrideMainJsText);
 }

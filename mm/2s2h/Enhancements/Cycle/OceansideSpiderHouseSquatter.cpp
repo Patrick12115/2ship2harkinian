@@ -2,6 +2,7 @@
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
 #include "2s2h/Rando/Rando.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "functions.h"
@@ -20,7 +21,7 @@ void RegisterOceansideSpiderHouseSquatter() {
      * the Oceanside Spider House, meaning the player would have to cross Great Bay Coast to find the man, which would
      * render the check unobtainable.
      */
-    COND_HOOK(OnFlagSet, CVAR || IS_RANDO, [](FlagType flagType, u32 flag) {
+    COND_HOOK(OnFlagSet, CVAR || IS_RANDO || IS_ARCHI, [](FlagType flagType, u32 flag) {
         if (flagType == FLAG_WEEK_EVENT_REG) {
             if (flag == WEEKEVENTREG_OCEANSIDE_SPIDER_HOUSE_BUYER_MOVED_IN) {
                 // Quietly unset it, unless we received the reward

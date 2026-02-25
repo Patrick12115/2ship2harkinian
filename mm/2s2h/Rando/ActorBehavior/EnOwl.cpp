@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/Rando/Logic/Logic.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
@@ -13,5 +14,6 @@ void Rando::ActorBehavior::InitEnOwlBehavior() {
      * logic, Lens may be obtained without magic, so we use this hook to only kill this owl if both Lens and magic are
      * acquired.
      */
-    COND_VB_SHOULD(VB_KILL_GORON_VILLAGE_OWL, IS_RANDO, { *should = HAS_ITEM(ITEM_LENS_OF_TRUTH) && HAS_MAGIC; });
+    COND_VB_SHOULD(VB_KILL_GORON_VILLAGE_OWL, (IS_RANDO || IS_ARCHI),
+                   { *should = HAS_ITEM(ITEM_LENS_OF_TRUTH) && HAS_MAGIC; });
 }

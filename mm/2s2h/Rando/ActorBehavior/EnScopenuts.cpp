@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 
@@ -11,7 +12,7 @@ void func_80BCB980(EnScopenuts* enScopenuts, PlayState* play);
 }
 
 void Rando::ActorBehavior::InitEnScopenutsBehavior() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         Player* player = GET_PLAYER(gPlayState);
@@ -28,7 +29,7 @@ void Rando::ActorBehavior::InitEnScopenutsBehavior() {
         }
     });
 
-    COND_ID_HOOK(OnOpenText, 0x1631, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x1631, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         RandoItemId randoItemId = RANDO_SAVE_CHECKS[RC_TERMINA_FIELD_GROTTO_SCRUB].randoItemId;
         entry.msg = "Please! I'll sell you %y{{itemName}}%w if you just keep this place a secret...\xE0";
@@ -39,5 +40,5 @@ void Rando::ActorBehavior::InitEnScopenutsBehavior() {
         *loadFromMessageTable = false;
     });
 
-    COND_VB_SHOULD(VB_SCOPENUTS_CONSIDER_FIRST_CYCLE, IS_RANDO, { *should = false; });
+    COND_VB_SHOULD(VB_SCOPENUTS_CONSIDER_FIRST_CYCLE, (IS_RANDO || IS_ARCHI), { *should = false; });
 }

@@ -1,4 +1,5 @@
 #include "MiscBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "variables.h"
@@ -12,7 +13,7 @@ s32 Player_SetupWaitForPutAway(PlayState* play, Player* player, AfterPutAwayFunc
 // GetItem textbox to close
 void Rando::MiscBehavior::InitOfferGetItemBehavior() {
     // Scripted Actors
-    COND_VB_SHOULD(VB_EXEC_MSG_EVENT, IS_RANDO, {
+    COND_VB_SHOULD(VB_EXEC_MSG_EVENT, (IS_RANDO || IS_ARCHI), {
         u32 cmdId = va_arg(args, u32);
         Actor* actor = va_arg(args, Actor*);
         Player* player = GET_PLAYER(gPlayState);
@@ -41,7 +42,7 @@ void Rando::MiscBehavior::InitOfferGetItemBehavior() {
     });
 
     // Non-scripted actors
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         Player* player = GET_PLAYER(gPlayState);

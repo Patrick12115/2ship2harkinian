@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/ShipUtils.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
@@ -69,8 +70,8 @@ RandoCheckId GetRandomCheck(bool repeatableOnlyObtained = false) {
 }
 
 void Rando::ActorBehavior::InitEnGsBehavior() {
-    bool shouldRegister =
-        IS_RANDO && (RANDO_SAVE_OPTIONS[RO_HINTS_GOSSIP_STONES] || RANDO_SAVE_OPTIONS[RO_HINTS_PURCHASEABLE]);
+    bool shouldRegister = (IS_RANDO || IS_ARCHI) &&
+                          (RANDO_SAVE_OPTIONS[RO_HINTS_GOSSIP_STONES] || RANDO_SAVE_OPTIONS[RO_HINTS_PURCHASEABLE]);
 
     COND_VB_SHOULD(VB_GS_CONSIDER_MASK_OF_TRUTH_EQUIPPED, shouldRegister, { *should = true; });
 
@@ -163,7 +164,7 @@ void Rando::ActorBehavior::InitEnGsBehavior() {
     });
 
     // Four Gossip Stone Grottos Heart Piece item grant behavior override
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* refActor = va_arg(args, Actor*);
         Player* player = GET_PLAYER(gPlayState);

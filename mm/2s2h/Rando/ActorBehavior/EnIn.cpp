@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 
@@ -40,7 +41,7 @@ void Rando::ActorBehavior::InitEnInBehavior() {
      * This is the same block found for non-scripted actors in OfferGetItem.cpp, with the removal of
      * Player_StartTalking() and addition of the rando check.
      */
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         if (actor->id == ACTOR_EN_IN) {
@@ -56,17 +57,19 @@ void Rando::ActorBehavior::InitEnInBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_HAVE_GARO_MASK, IS_RANDO,
+    COND_VB_SHOULD(VB_HAVE_GARO_MASK, (IS_RANDO || IS_ARCHI),
                    { *should = RANDO_SAVE_CHECKS[RC_GORMAN_TRACK_GARO_MASK].cycleObtained; });
 
     // RC_GORMAN_MILK_PURCHASE
 
     // 50 Rupees will do ya for one drink!
-    COND_ID_HOOK(OnOpenText, 0x3490, IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SHOPS], EnIn_OnOpenPurchaseText);
-    COND_ID_HOOK(OnOpenText, 0x3466, IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SHOPS], EnIn_OnOpenPurchaseText);
+    COND_ID_HOOK(OnOpenText, 0x3490, (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SHOPS],
+                 EnIn_OnOpenPurchaseText);
+    COND_ID_HOOK(OnOpenText, 0x3466, (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SHOPS],
+                 EnIn_OnOpenPurchaseText);
 
     // Modified section of func_808F4414() for 0x3490 and 0x3466 textIds
-    COND_VB_SHOULD(VB_BUY_GORMAN_MILK, IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SHOPS], {
+    COND_VB_SHOULD(VB_BUY_GORMAN_MILK, (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SHOPS], {
         s32* ret = va_arg(args, s32*);
         EnIn* enIn = va_arg(args, EnIn*);
         if (RANDO_SAVE_CHECKS[RC_GORMAN_MILK_PURCHASE].cycleObtained) {

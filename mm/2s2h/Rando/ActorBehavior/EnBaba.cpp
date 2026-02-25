@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -13,7 +14,7 @@ void EnBaba_GaveBlastMask(EnBaba* enBaba, PlayState* play);
 // The Bomb Shop Lady's item give is non-scripted, but the catch-all for VB_GIVE_ITEM_FROM_OFFER does not work for
 // this case, as Link can move freely once the next textbox appears. This code fixes that.
 void Rando::ActorBehavior::InitEnBabaBehavior() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         // This runs for all actors using Actor_OfferGetItem, so make sure we only do this with the Bomb Shop Lady.
@@ -32,6 +33,6 @@ void Rando::ActorBehavior::InitEnBabaBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_HAVE_BLAST_MASK, IS_RANDO,
+    COND_VB_SHOULD(VB_HAVE_BLAST_MASK, (IS_RANDO || IS_ARCHI),
                    { *should = RANDO_SAVE_CHECKS[RC_CLOCK_TOWN_NORTH_BOMB_LADY].cycleObtained; });
 }

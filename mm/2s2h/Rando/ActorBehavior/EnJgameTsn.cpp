@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 
@@ -8,7 +9,7 @@ void Player_StartTalking(PlayState* play, Actor* actor);
 }
 
 void Rando::ActorBehavior::InitEnJgameTsnBehavior() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* getItemId = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         if (actor->id == ACTOR_EN_JGAME_TSN &&
@@ -24,7 +25,7 @@ void Rando::ActorBehavior::InitEnJgameTsnBehavior() {
     });
 
     // Fisherman "Want to play the jumping game for a prize?"
-    COND_ID_HOOK(OnOpenText, 0x1096, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x1096, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_GREAT_BAY_COAST_FISHERMAN_MINIGAME];
 
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);

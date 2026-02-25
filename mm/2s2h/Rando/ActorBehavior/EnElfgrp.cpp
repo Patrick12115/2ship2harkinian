@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/ShipUtils.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
@@ -51,7 +52,7 @@ void ApplyGreatFairyHint(u16* textId, bool* loadFromMessageTable, RandoCheckId r
 
 // Handles the Great Fairy checks
 void Rando::ActorBehavior::InitEnElfgrpBehavior() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_STRAY_FAIRY_MANAGER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_STRAY_FAIRY_MANAGER, (IS_RANDO || IS_ARCHI), {
         *should = false;
 
         EnElfgrp* elfgrp = va_arg(args, EnElfgrp*);
@@ -74,7 +75,7 @@ void Rando::ActorBehavior::InitEnElfgrpBehavior() {
     });
 
     // Use the RO Stray Fairy minimum threshold rather than the vanilla 15
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_ELFGRP, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_ELFGRP, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         EnElfgrp* enElfgrp = (EnElfgrp*)actor;
         // Exclude the Clock Town fairy, and do not do more than once at a time
         if (enElfgrp->type != ENELFGRP_TYPE_MAGIC &&
@@ -85,35 +86,35 @@ void Rando::ActorBehavior::InitEnElfgrpBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_GREAT_FAIRY, IS_RANDO, { *should = false; });
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_GREAT_FAIRY, (IS_RANDO || IS_ARCHI), { *should = false; });
 
-    COND_VB_SHOULD(VB_GREAT_FAIRY_GIVE_DOUBLE_DEFENSE_HEARTS, IS_RANDO, { *should = false; });
+    COND_VB_SHOULD(VB_GREAT_FAIRY_GIVE_DOUBLE_DEFENSE_HEARTS, (IS_RANDO || IS_ARCHI), { *should = false; });
 
-    COND_ID_HOOK(OnOpenText, 0x578, IS_RANDO, ApplyClockTownGreatFairyHint);
-    COND_ID_HOOK(OnOpenText, 0x580, IS_RANDO, ApplyClockTownGreatFairyHint);
+    COND_ID_HOOK(OnOpenText, 0x578, (IS_RANDO || IS_ARCHI), ApplyClockTownGreatFairyHint);
+    COND_ID_HOOK(OnOpenText, 0x580, (IS_RANDO || IS_ARCHI), ApplyClockTownGreatFairyHint);
 
-    COND_ID_HOOK(OnOpenText, 0x582, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x582, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         ApplyGreatFairyHint(textId, loadFromMessageTable, RC_WOODFALL_GREAT_FAIRY);
     });
-    COND_ID_HOOK(OnOpenText, 0x583, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x583, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         ApplyGreatFairyHint(textId, loadFromMessageTable, RC_WOODFALL_GREAT_FAIRY);
     });
-    COND_ID_HOOK(OnOpenText, 0x585, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x585, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         ApplyGreatFairyHint(textId, loadFromMessageTable, RC_SNOWHEAD_GREAT_FAIRY);
     });
-    COND_ID_HOOK(OnOpenText, 0x586, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x586, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         ApplyGreatFairyHint(textId, loadFromMessageTable, RC_SNOWHEAD_GREAT_FAIRY);
     });
-    COND_ID_HOOK(OnOpenText, 0x588, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x588, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         ApplyGreatFairyHint(textId, loadFromMessageTable, RC_GREAT_BAY_GREAT_FAIRY);
     });
-    COND_ID_HOOK(OnOpenText, 0x589, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x589, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         ApplyGreatFairyHint(textId, loadFromMessageTable, RC_GREAT_BAY_GREAT_FAIRY);
     });
-    COND_ID_HOOK(OnOpenText, 0x58B, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x58B, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         ApplyGreatFairyHint(textId, loadFromMessageTable, RC_IKANA_GREAT_FAIRY);
     });
-    COND_ID_HOOK(OnOpenText, 0x58C, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x58C, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         ApplyGreatFairyHint(textId, loadFromMessageTable, RC_IKANA_GREAT_FAIRY);
     });
 }

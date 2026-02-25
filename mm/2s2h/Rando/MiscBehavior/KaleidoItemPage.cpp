@@ -1,5 +1,6 @@
 #include "MiscBehavior.h"
 #include "2s2h/Enhancements/FrameInterpolation/FrameInterpolation.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "z64interface.h"
@@ -231,7 +232,7 @@ void DrawItemCycleExtras(PlayState* play, u8 slot, u8 canCycle, u8 leftItem, u8 
 }
 
 void Rando::MiscBehavior::InitKaleidoItemPage() {
-    COND_HOOK(OnKaleidoUpdate, IS_RANDO, [](PauseContext* pauseCtx) {
+    COND_HOOK(OnKaleidoUpdate, (IS_RANDO || IS_ARCHI), [](PauseContext* pauseCtx) {
         InterfaceContext* interfaceCtx = &gPlayState->interfaceCtx;
 
         if ((pauseCtx->state != PAUSE_STATE_MAIN)) {
@@ -371,7 +372,7 @@ void Rando::MiscBehavior::InitKaleidoItemPage() {
         sPrevKaleidoCursorSlot = slot;
     });
 
-    COND_VB_SHOULD(VB_KALEIDO_DISPLAY_ITEM_TEXT, IS_RANDO, {
+    COND_VB_SHOULD(VB_KALEIDO_DISPLAY_ITEM_TEXT, (IS_RANDO || IS_ARCHI), {
         PauseContext* pauseCtx = &gPlayState->pauseCtx;
         u16 slot = pauseCtx->cursorSlot[PAUSE_ITEM];
 
@@ -382,7 +383,7 @@ void Rando::MiscBehavior::InitKaleidoItemPage() {
         *should = false;
     });
 
-    COND_ID_HOOK(AfterKaleidoDrawPage, PAUSE_ITEM, IS_RANDO, [](PauseContext* pauseCtx, u16 pauseIndex) {
+    COND_ID_HOOK(AfterKaleidoDrawPage, PAUSE_ITEM, (IS_RANDO || IS_ARCHI), [](PauseContext* pauseCtx, u16 pauseIndex) {
         std::vector<u8> availableDeedItems = BuildAvailableItemsList(SLOT_TRADE_DEED);
         std::vector<u8> availableKeyMamaItems = BuildAvailableItemsList(SLOT_TRADE_KEY_MAMA);
         std::vector<u8> availableCoupleItems = BuildAvailableItemsList(SLOT_TRADE_COUPLE);

@@ -2,6 +2,7 @@
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
 #include "2s2h/Rando/Rando.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "overlays/actors/ovl_En_Sth/z_en_sth.h"
@@ -11,7 +12,7 @@ extern "C" {
 #define CVAR CVarGetInteger(CVAR_NAME, 0)
 
 void RegisterOceansideWalletAnyDay() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, CVAR || IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, CVAR || IS_RANDO || IS_ARCHI, {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
 

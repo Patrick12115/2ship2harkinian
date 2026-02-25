@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -11,9 +12,9 @@ static std::vector<u8> skipCmds = {};
 
 void Rando::ActorBehavior::InitEnAnBehavior() {
 
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_AN, IS_RANDO, [](Actor* actor) { skipCmds.clear(); });
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_AN, (IS_RANDO || IS_ARCHI), [](Actor* actor) { skipCmds.clear(); });
 
-    COND_VB_SHOULD(VB_EXEC_MSG_EVENT, IS_RANDO, {
+    COND_VB_SHOULD(VB_EXEC_MSG_EVENT, (IS_RANDO || IS_ARCHI), {
         u32 cmdId = va_arg(args, u32);
         Actor* actor = va_arg(args, Actor*);
         if (actor->id == ACTOR_EN_AN) { // Anju

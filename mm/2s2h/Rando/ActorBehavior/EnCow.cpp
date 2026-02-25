@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/ObjectExtension/ActorListIndex.h"
 
@@ -21,7 +22,7 @@ std::map<std::tuple<s16, s16, s16>, RandoCheckId> cowMap = {
 
 void Rando::ActorBehavior::InitEnCowBehavior() {
     // Identify cow based on scene ID, room, and actor list index
-    COND_ID_HOOK(ShouldActorInit, ACTOR_EN_COW, IS_RANDO, [](Actor* actor, bool* should) {
+    COND_ID_HOOK(ShouldActorInit, ACTOR_EN_COW, (IS_RANDO || IS_ARCHI), [](Actor* actor, bool* should) {
         RandoCheckId randoCheckId = RC_UNKNOWN;
 
         s16 actorListIndex = GetActorListIndex(actor);
@@ -72,7 +73,7 @@ void Rando::ActorBehavior::InitEnCowBehavior() {
         }
     });
 
-    bool shouldRegister = IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_COWS];
+    bool shouldRegister = (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_COWS];
 
     COND_VB_SHOULD(VB_GIVE_ITEM_FROM_COW, shouldRegister, {
         // Original Should is the Range check, if it fails just Return.

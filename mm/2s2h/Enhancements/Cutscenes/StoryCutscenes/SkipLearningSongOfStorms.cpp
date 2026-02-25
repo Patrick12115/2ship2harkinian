@@ -4,6 +4,7 @@
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "variables.h"
@@ -15,10 +16,10 @@ extern "C" {
 
 // This is a song tutorial, so the skip is forced on in rando for now
 void RegisterSkipLearningSongOfStorms() {
-    COND_VB_SHOULD(VB_START_CUTSCENE, CVAR || IS_RANDO, {
+    COND_VB_SHOULD(VB_START_CUTSCENE, CVAR || IS_RANDO || IS_ARCHI, {
         s16* csId = va_arg(args, s16*);
         if (gPlayState->sceneId == SCENE_HAKASHITA && *csId == 13) { // Z-Target Flat's tombstone Beneath the Graveyard
-            if (IS_RANDO) {
+            if (IS_RANDO || IS_ARCHI) {
                 RANDO_SAVE_CHECKS[RC_BENEATH_THE_GRAVEYARD_SONG_OF_STORMS].eligible = true;
             } else {
                 GameInteractor::Instance->events.emplace_back(GIEventGiveItem{

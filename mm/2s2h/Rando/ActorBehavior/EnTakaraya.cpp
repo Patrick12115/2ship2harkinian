@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "variables.h"
@@ -29,7 +30,7 @@ void func_80ADF520_modified(EnTakaraya* enTakaraya, PlayState* play) {
 }
 
 void Rando::ActorBehavior::InitEnTakarayaBehavior() {
-    COND_ID_HOOK(OnActorUpdate, ACTOR_EN_TAKARAYA, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorUpdate, ACTOR_EN_TAKARAYA, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         EnTakaraya* enTakaraya = (EnTakaraya*)actor;
         if (enTakaraya->actionFunc == func_80ADF520) {
             Actor* box =

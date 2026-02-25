@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/Rando/Logic/Logic.h"
 
@@ -28,14 +29,15 @@ void RespawnOnWaterTouch(Player* player) {
 }
 
 void Rando::ActorBehavior::InitPlayerBehavior() {
-    COND_ID_HOOK(OnActorUpdate, ACTOR_PLAYER, IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SWIM], [](Actor* actor) {
-        Player* player = GET_PLAYER(gPlayState);
-        if (!Flags_GetRandoInf(RANDO_INF_OBTAINED_SWIM)) {
-            RespawnOnWaterTouch(player);
-        }
-    });
+    COND_ID_HOOK(OnActorUpdate, ACTOR_PLAYER, (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SWIM],
+                 [](Actor* actor) {
+                     Player* player = GET_PLAYER(gPlayState);
+                     if (!Flags_GetRandoInf(RANDO_INF_OBTAINED_SWIM)) {
+                         RespawnOnWaterTouch(player);
+                     }
+                 });
 
-    COND_VB_SHOULD(VB_PLAY_OCARINA_NOTE, IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_OCARINA_BUTTONS], {
+    COND_VB_SHOULD(VB_PLAY_OCARINA_NOTE, (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_OCARINA_BUTTONS], {
         u8* sCurOcarinaButtonIndex = va_arg(args, u8*);
         u8* sCurOcarinaPitch = va_arg(args, u8*);
         u8 currentOcarinaButton = *sCurOcarinaButtonIndex;
@@ -52,7 +54,7 @@ void Rando::ActorBehavior::InitPlayerBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_SONG_AVAILABLE_TO_PLAY, IS_RANDO, {
+    COND_VB_SHOULD(VB_SONG_AVAILABLE_TO_PLAY, (IS_RANDO || IS_ARCHI), {
         uint8_t* songIndex = va_arg(args, uint8_t*);
 
         if (*songIndex == OCARINA_SONG_SUNS && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SONG_SUN]) {

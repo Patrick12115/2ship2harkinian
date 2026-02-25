@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 #include "2s2h/CustomItem/CustomItem.h"
@@ -375,9 +376,9 @@ void ObjTsubo_RandoDraw(Actor* actor, PlayState* play) {
 }
 
 void Rando::ActorBehavior::InitObjTsuboBehavior() {
-    COND_ID_HOOK(ShouldActorInit, ACTOR_OBJ_TSUBO, IS_RANDO, IdentifyPot);
+    COND_ID_HOOK(ShouldActorInit, ACTOR_OBJ_TSUBO, (IS_RANDO || IS_ARCHI), IdentifyPot);
 
-    COND_VB_SHOULD(VB_POT_DRAW_BE_OVERRIDDEN, IS_RANDO, {
+    COND_VB_SHOULD(VB_POT_DRAW_BE_OVERRIDDEN, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
         RandoCheckId randoCheckId = Rando::ActorBehavior::GetObjectRandoCheckId(actor);
         if (randoCheckId != RC_UNKNOWN) {
@@ -386,7 +387,7 @@ void Rando::ActorBehavior::InitObjTsuboBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_POT_DROP_COLLECTIBLE, IS_RANDO, {
+    COND_VB_SHOULD(VB_POT_DROP_COLLECTIBLE, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
         RandoCheckId randoCheckId = Rando::ActorBehavior::GetObjectRandoCheckId(actor);
         if (randoCheckId == RC_UNKNOWN) {
@@ -404,10 +405,13 @@ void Rando::ActorBehavior::InitObjTsuboBehavior() {
             },
             [](Actor* actor, PlayState* play) {
                 auto& randoSaveCheck = RANDO_SAVE_CHECKS[CUSTOM_ITEM_PARAM];
-                RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId);
                 Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-                Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM),
-                                (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
+                RandoItemId randoItemId =
+                    Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM);
+                if (randoItemId == RI_JUNK) {
+                    randoItemId = Rando::CurrentJunkItem((RandoCheckId)CUSTOM_ITEM_PARAM);
+                }
+                Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
             });
         *should = false;
 

@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 #include "2s2h/ShipUtils.h"
@@ -65,10 +66,10 @@ void DmChar02_UpdateCustom(Actor* actor, PlayState* play) {
 // This handles the two checks for the Clock Tower Roof, the Ocarina and Song of Time checks. It also handles
 // overriding the drawing of the Ocarina in the hand of the Skull Kid.
 void Rando::ActorBehavior::InitDmStkBehavior() {
-    COND_ID_HOOK(ShouldActorInit, ACTOR_DM_CHAR02, IS_RANDO,
+    COND_ID_HOOK(ShouldActorInit, ACTOR_DM_CHAR02, (IS_RANDO || IS_ARCHI),
                  [](Actor* actor, bool* should) { actor->update = DmChar02_UpdateCustom; });
 
-    COND_VB_SHOULD(VB_DRAW_OCARINA_IN_STK_HAND, IS_RANDO, {
+    COND_VB_SHOULD(VB_DRAW_OCARINA_IN_STK_HAND, (IS_RANDO || IS_ARCHI), {
         Actor* dmStk = va_arg(args, Actor*);
 
         if (*should) {
@@ -86,18 +87,21 @@ void Rando::ActorBehavior::InitDmStkBehavior() {
             Matrix_TranslateRotateZYX(&pos, &rot);
 
             auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_CLOCK_TOWER_ROOF_OCARINA];
-            Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, RC_CLOCK_TOWER_ROOF_OCARINA),
-                            RC_CLOCK_TOWER_ROOF_OCARINA, dmStk);
+            RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, RC_CLOCK_TOWER_ROOF_OCARINA);
+            if (randoItemId == RI_JUNK) {
+                randoItemId = Rando::CurrentJunkItem(RC_CLOCK_TOWER_ROOF_OCARINA);
+            }
+            Rando::DrawItem(randoItemId, RC_CLOCK_TOWER_ROOF_OCARINA, dmStk);
         }
     });
 
-    COND_VB_SHOULD(VB_OVERRIDE_CHAR02_LIMB, IS_RANDO, {
+    COND_VB_SHOULD(VB_OVERRIDE_CHAR02_LIMB, (IS_RANDO || IS_ARCHI), {
         Gfx** dList = va_arg(args, Gfx**);
 
         *dList = NULL;
     });
 
-    COND_VB_SHOULD(VB_POST_CHAR02_LIMB, IS_RANDO, {
+    COND_VB_SHOULD(VB_POST_CHAR02_LIMB, (IS_RANDO || IS_ARCHI), {
         Actor* dmChar02 = va_arg(args, Actor*);
 
         Matrix_Scale(15.0f, 15.0f, 15.0f, MTXMODE_APPLY);
@@ -110,19 +114,23 @@ void Rando::ActorBehavior::InitDmStkBehavior() {
         Matrix_TranslateRotateZYX(&pos, &rot);
 
         auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_CLOCK_TOWER_ROOF_OCARINA];
-        Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, RC_CLOCK_TOWER_ROOF_OCARINA),
-                        RC_CLOCK_TOWER_ROOF_OCARINA, dmChar02);
+        RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, RC_CLOCK_TOWER_ROOF_OCARINA);
+        if (randoItemId == RI_JUNK) {
+            randoItemId = Rando::CurrentJunkItem(RC_CLOCK_TOWER_ROOF_OCARINA);
+        }
+        Rando::DrawItem(randoItemId, RC_CLOCK_TOWER_ROOF_OCARINA, dmChar02);
     });
 
-    COND_VB_SHOULD(VB_STK_HAVE_OCARINA, IS_RANDO, {
+    COND_VB_SHOULD(VB_STK_HAVE_OCARINA, (IS_RANDO || IS_ARCHI), {
         auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_CLOCK_TOWER_ROOF_OCARINA];
         *should = !randoSaveCheck.cycleObtained;
     });
 
-    COND_ID_HOOK(OnOpenText, 0x2013, IS_RANDO && RANDO_SAVE_OPTIONS[RO_HINTS_OATH_TO_ORDER], ApplyOathHint);
+    COND_ID_HOOK(OnOpenText, 0x2013, (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_HINTS_OATH_TO_ORDER],
+                 ApplyOathHint);
 
     COND_ID_HOOK(
-        ShouldActorUpdate, ACTOR_DM_STK, IS_RANDO && RANDO_SAVE_OPTIONS[RO_HINTS_OATH_TO_ORDER],
+        ShouldActorUpdate, ACTOR_DM_STK, (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_HINTS_OATH_TO_ORDER],
         [](Actor* actor, bool* should) {
             DmStk* dmStk = (DmStk*)actor;
 

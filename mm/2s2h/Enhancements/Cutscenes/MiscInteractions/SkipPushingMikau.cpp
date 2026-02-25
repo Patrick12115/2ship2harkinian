@@ -1,6 +1,7 @@
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/Rando/Logic/Logic.h"
 
@@ -13,7 +14,7 @@ extern "C" {
 
 void RegisterSkipPushingMikau() {
     COND_ID_HOOK(ShouldActorInit, ACTOR_EN_ZOG, CVAR, [](Actor* actor, bool* should) {
-        if (IS_RANDO && !CAN_USE_ABILITY(SWIM)) {
+        if ((IS_RANDO || IS_ARCHI) && !CAN_USE_ABILITY(SWIM)) {
             // This skip would circumvent logical requirements if the player cannot swim yet
             return;
         }

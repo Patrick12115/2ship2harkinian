@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -19,12 +20,15 @@ void EnSi_DrawCustom(Actor* thisx, PlayState* play) {
 
     auto randoSaveCheck = RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId];
 
-    Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, randoStaticCheck.randoCheckId),
-                    randoStaticCheck.randoCheckId, thisx);
+    RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, randoStaticCheck.randoCheckId);
+    if (randoItemId == RI_JUNK) {
+        randoItemId = Rando::CurrentJunkItem(randoStaticCheck.randoCheckId);
+    }
+    Rando::DrawItem(randoItemId, randoStaticCheck.randoCheckId, thisx);
 }
 
 void Rando::ActorBehavior::InitEnSiBehavior() {
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_SI, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_SI, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         EnSi* enSi = (EnSi*)actor;
 
         auto randoStaticCheck = Rando::StaticData::GetCheckFromFlag(
@@ -42,7 +46,7 @@ void Rando::ActorBehavior::InitEnSiBehavior() {
         actor->draw = EnSi_DrawCustom;
     });
 
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_SI, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_SI, (IS_RANDO || IS_ARCHI), {
         EnSi* enSi = va_arg(args, EnSi*);
 
         auto randoStaticCheck = Rando::StaticData::GetCheckFromFlag(

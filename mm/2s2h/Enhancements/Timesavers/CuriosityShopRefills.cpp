@@ -1,6 +1,7 @@
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
 #include "2s2h/Rando/Rando.h"
 
@@ -91,7 +92,7 @@ static bool HasSeahorseRequirements() {
         return false;
     }
 
-    if (IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SWIM] && !Flags_GetRandoInf(RANDO_INF_OBTAINED_SWIM)) {
+    if ((IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SWIM] && !Flags_GetRandoInf(RANDO_INF_OBTAINED_SWIM)) {
         return false;
     }
 
@@ -108,7 +109,7 @@ static bool IsRefillAvailable(const RefillItem& item) {
         return HasSeahorseRequirements();
     }
 
-    if (IS_RANDO) {
+    if (IS_RANDO || IS_ARCHI) {
         if (item.randoItem != RI_NONE) {
             RandoCheckId itemPlacement = Rando::FindItemPlacement(item.randoItem);
             return itemPlacement != RC_UNKNOWN && RANDO_SAVE_CHECKS[itemPlacement].obtained;

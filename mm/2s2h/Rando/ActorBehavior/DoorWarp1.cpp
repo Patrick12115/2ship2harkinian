@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/Enhancements/Cutscenes/StoryCutscenes/SkipGiantsChamber.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
@@ -13,7 +14,7 @@ void Rando::ActorBehavior::InitDoorWarp1VBehavior() {
      * This actor normally checks for the boss remains flags for multiple things (spawning the item, warping animation,
      * whether to go to the Giants' Chamber). In rando, use rando checks instead
      */
-    COND_VB_SHOULD(VB_SPAWN_BOSS_REMAINS, IS_RANDO, {
+    COND_VB_SHOULD(VB_SPAWN_BOSS_REMAINS, (IS_RANDO || IS_ARCHI), {
         s32* ret = va_arg(args, s32*);
         if ((gPlayState->sceneId == SCENE_MITURIN_BS) && !RANDO_SAVE_CHECKS[RC_WOODFALL_TEMPLE_BOSS_WARP].obtained) {
             // Odolwa's Lair
@@ -38,7 +39,7 @@ void Rando::ActorBehavior::InitDoorWarp1VBehavior() {
      * This should only be reached if the check has not already been activated. On repeats, there is no item, and the
      * crystal warp animation plays out instead.
      */
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         DoorWarp1* doorWarp1 = (DoorWarp1*)actor;
@@ -79,7 +80,7 @@ void Rando::ActorBehavior::InitDoorWarp1VBehavior() {
     /*
      * Changes the requirements to activate the boss room warp pad shortcut to check for boss room blue warp used
      */
-    COND_VB_SHOULD(VB_ACTIVATE_BOSS_WARP_PAD, IS_RANDO, {
+    COND_VB_SHOULD(VB_ACTIVATE_BOSS_WARP_PAD, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
         RandoCheckId checkId = RC_UNKNOWN;
 

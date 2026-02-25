@@ -52,4 +52,4 @@ void RegisterSkipDefeatCaptainSequence() {
     });
 }
 
-static RegisterShipInitFunc initFunc(RegisterSkipDefeatCaptainSequence, { CVAR_NAME, "IS_RANDO" });
+static RegisterShipInitFunc initFunc(RegisterSkipDefeatCaptainSequence, { CVAR_NAME, "IS_RANDO", "IS_ARCHI" });

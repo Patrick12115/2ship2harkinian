@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 
@@ -10,7 +11,7 @@ void Player_StartTalking(PlayState* play, Actor* actor);
 }
 
 void Rando::ActorBehavior::InitEnGb2Behavior() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* refActor = va_arg(args, Actor*);
         Player* player = GET_PLAYER(gPlayState);
@@ -38,7 +39,7 @@ void Rando::ActorBehavior::InitEnGb2Behavior() {
         Message_StartTextbox(gPlayState, 0x14DE, refActor);
     });
 
-    COND_ID_HOOK(OnOpenText, 0x14D1, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x14D1, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         if (RANDO_SAVE_CHECKS[RC_IKANA_CANYON_GHOST_HUT_PIECE_OF_HEART].obtained) {
             return;
         }

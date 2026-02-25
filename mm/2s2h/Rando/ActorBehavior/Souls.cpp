@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "Souls.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "Rando/DrawFuncs.h"
@@ -15,7 +16,7 @@ void BossHakugin_DrawIce(BossHakugin*, PlayState*);
 
 bool shouldMajoraRegister() {
     bool registerStatus = false;
-    if (IS_RANDO) {
+    if (IS_RANDO || IS_ARCHI) {
         if (RANDO_SAVE_OPTIONS[RO_SHUFFLE_BOSS_SOULS] == RO_GENERIC_YES ||
             RANDO_SAVE_OPTIONS[RO_SHUFFLE_TRIFORCE_PIECES] == RO_GENERIC_YES) {
             registerStatus = true;
@@ -123,8 +124,8 @@ void ShouldActorDraw(Actor* actor, bool* should, RandoInf randoInf) {
 }
 
 void Rando::ActorBehavior::InitSoulsBehavior() {
-    bool shouldBossRegister = IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_BOSS_SOULS] == RO_GENERIC_YES;
-    bool shouldEnemyInjure = IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_ENEMY_SOULS] == RO_GENERIC_YES;
+    bool shouldBossRegister = (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_BOSS_SOULS] == RO_GENERIC_YES;
+    bool shouldEnemyInjure = (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_ENEMY_SOULS] == RO_GENERIC_YES;
 
     COND_VB_SHOULD(VB_PERFORM_AC_COLLISION, shouldEnemyInjure, {
         Collider* at = va_arg(args, Collider*);

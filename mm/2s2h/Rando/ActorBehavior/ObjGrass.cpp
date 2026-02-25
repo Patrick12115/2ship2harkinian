@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 #include "2s2h/CustomItem/CustomItem.h"
@@ -152,10 +153,12 @@ void SpawnGrassDrop(Vec3f pos, RandoCheckId randoCheckId) {
         },
         [](Actor* actor, PlayState* play) {
             auto& randoSaveCheck = RANDO_SAVE_CHECKS[CUSTOM_ITEM_PARAM];
-            RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId);
             Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-            Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM),
-                            (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
+            RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM);
+            if (randoItemId == RI_JUNK) {
+                randoItemId = Rando::CurrentJunkItem((RandoCheckId)CUSTOM_ITEM_PARAM);
+            }
+            Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
         });
 }
 
@@ -323,7 +326,7 @@ void Rando::ActorBehavior::InitObjGrassBehavior() {
      * use respawn data to retrieve the base RC. The grass actors and RCs are both in contiguous order, so the base RC
      * can be incremented to get each grass actor's target RC value.
      */
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_KUSA, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_KUSA, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         s16 actorListIndex = GetActorListIndex(actor);
         if (actorListIndex < 0) { // This grass was placed by a spawner, not scene data
             return;
@@ -357,7 +360,7 @@ void Rando::ActorBehavior::InitObjGrassBehavior() {
      * Identify actor grass that was spawned by a spawner actor, by scene ID, room, and the spawner's actor list index.
      * The RCs and child grass are contiguous, so they can increment the base value to get their target RC.
      */
-    COND_VB_SHOULD(VB_OBJ_MURE2_SET_CHILD_ROOM, IS_RANDO, {
+    COND_VB_SHOULD(VB_OBJ_MURE2_SET_CHILD_ROOM, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
         ObjMure2* objMure2 = (ObjMure2*)actor;
         s32 i = va_arg(args, s32);
@@ -386,7 +389,7 @@ void Rando::ActorBehavior::InitObjGrassBehavior() {
      * scene. Cow grottos use respawn data instead. The order that grass elements are processed is deterministic each
      * load and contiguous, so we can just increment the base RC like always.
      */
-    COND_ID_HOOK(OnActorKill, ACTOR_OBJ_GRASS_UNIT, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorKill, ACTOR_OBJ_GRASS_UNIT, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         s16 maxActiveGrassGroups = 0;
         RandoCheckId baseCheckId;
 
@@ -425,14 +428,14 @@ void Rando::ActorBehavior::InitObjGrassBehavior() {
     });
 
     // If actor grass was not spawned directly in the scene, we must manually free the extension RC.
-    COND_ID_HOOK(OnActorDestroy, ACTOR_EN_KUSA, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorDestroy, ACTOR_EN_KUSA, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         if (GetActorListIndex(actor) < 0) {
             ObjectExtension_Free(actor);
         }
     });
 
     // There should only be one of this actor active at any time. Iterate its grandchildren and free the extension.
-    COND_ID_HOOK(OnActorDestroy, ACTOR_OBJ_GRASS, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorDestroy, ACTOR_OBJ_GRASS, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         ObjGrassGroup* grassGroup;
         ObjGrass* objGrass = (ObjGrass*)actor;
         for (int i = 0; i < objGrass->activeGrassGroups; i++) {
@@ -443,7 +446,7 @@ void Rando::ActorBehavior::InitObjGrassBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_KUSA_BUSH_DRAW_BE_OVERRIDDEN, IS_RANDO, {
+    COND_VB_SHOULD(VB_KUSA_BUSH_DRAW_BE_OVERRIDDEN, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
         if (GetObjectRandoCheckId(actor) != RC_UNKNOWN) {
             *should = false;
@@ -451,7 +454,7 @@ void Rando::ActorBehavior::InitObjGrassBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_OBJGRASS_OPA_DRAW_BE_OVERRIDDEN, IS_RANDO, {
+    COND_VB_SHOULD(VB_OBJGRASS_OPA_DRAW_BE_OVERRIDDEN, (IS_RANDO || IS_ARCHI), {
         ObjGrass* objGrass = va_arg(args, ObjGrass*);
         ObjGrassElement* grassElem = va_arg(args, ObjGrassElement*);
         s32 j = va_arg(args, s32);
@@ -462,7 +465,7 @@ void Rando::ActorBehavior::InitObjGrassBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_OBJGRASS_XLU_DRAW_BE_OVERRIDDEN, IS_RANDO, {
+    COND_VB_SHOULD(VB_OBJGRASS_XLU_DRAW_BE_OVERRIDDEN, (IS_RANDO || IS_ARCHI), {
         ObjGrass* objGrass = va_arg(args, ObjGrass*);
         ObjGrassElement* grassElem = va_arg(args, ObjGrassElement*);
         RandoCheckId randoCheckId = GetObjectRandoCheckId(grassElem);
@@ -472,7 +475,7 @@ void Rando::ActorBehavior::InitObjGrassBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_CARRY_GRASS_DRAW_BE_OVERRIDDEN, IS_RANDO, {
+    COND_VB_SHOULD(VB_CARRY_GRASS_DRAW_BE_OVERRIDDEN, (IS_RANDO || IS_ARCHI), {
         ObjGrassCarry* grassCarryActor = va_arg(args, ObjGrassCarry*);
         Actor* actor = &grassCarryActor->actor;
         RandoCheckId randoCheckId = GetObjectRandoCheckId(grassCarryActor->grassElem);
@@ -484,7 +487,7 @@ void Rando::ActorBehavior::InitObjGrassBehavior() {
     });
 
     // The grass has been destroyed, so spawn a collectible item based on the grass's RC value.
-    COND_VB_SHOULD(VB_GRASS_DROP_COLLECTIBLE, IS_RANDO, {
+    COND_VB_SHOULD(VB_GRASS_DROP_COLLECTIBLE, (IS_RANDO || IS_ARCHI), {
         auto actorId = static_cast<ActorId>(va_arg(args, int32_t));
         Vec3f collectiblePos = gZeroVec3f;
         RandoCheckId randoCheckId;

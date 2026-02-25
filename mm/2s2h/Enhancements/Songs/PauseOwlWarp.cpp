@@ -1,6 +1,7 @@
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/ShipUtils.h"
 #include "2s2h/Rando/Logic/Logic.h"
 
@@ -23,7 +24,7 @@ extern "C" bool PauseOwlWarp_IsOwlWarpEnabled() {
            gSaveContext.save.saveInfo.playerData.owlActivationFlags != 0 &&
            gPlayState->pauseCtx.debugEditor == DEBUG_EDITOR_NONE &&
            gPlayState->interfaceCtx.restrictions.songOfSoaring == 0 &&
-           (!IS_RANDO || Rando::Logic::canPlaySong(OCARINA_SONG_SOARING));
+           (!(IS_RANDO || IS_ARCHI) || Rando::Logic::canPlaySong(OCARINA_SONG_SOARING));
 }
 
 void HandleConfirmingState(PauseContext* pauseCtx, Input* input) {

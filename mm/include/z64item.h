@@ -548,7 +548,10 @@ typedef enum GetItemId {
     /* 0xB8 */ GI_TINGLE_MAP_GREAT_BAY,
     /* 0xB9 */ GI_TINGLE_MAP_STONE_TOWER,
     /* 0xBA */ GI_SHIP, // 2S2H [Enhancement] Added to enable custom item gives
-    /* 0xBB */ GI_MAX
+    /* 0xBB */ GI_ARCHIPELAGO_PROGRESSIVE,
+    /* 0xBC */ GI_ARCHIPELAGO_USEFUL,
+    /* 0xBD */ GI_ARCHIPELAGO_JUNK,
+    /* 0xBE */ GI_MAX
 } GetItemId;
 
 typedef enum GetItemDrawId {
@@ -671,7 +674,10 @@ typedef enum GetItemDrawId {
     /* 0x73 */ GID_CHATEAU,
     /* 0x74 */ GID_PICTOGRAPH_BOX,
     /* 0x75 */ GID_MASK_FIERCE_DEITY,
-    /* 0x76 */ GID_MAXIMUM // 2S2H [Port] Changed from GID_MAX because that's a reserved macro on MacOS(?)
+    /* 0x76 */ GID_ARCHIPELAGO_PROGRESSIVE,
+    /* 0x77 */ GID_ARCHIPELAGO_USEFUL,
+    /* 0x78 */ GID_ARCHIPELAGO_JUNK,
+    /* 0x79 */ GID_MAXIMUM // 2S2H [Port] Changed from GID_MAX because that's a reserved macro on MacOS(?)
 } GetItemDrawId;
 
 #endif

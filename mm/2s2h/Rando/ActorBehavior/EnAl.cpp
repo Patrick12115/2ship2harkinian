@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -13,17 +14,17 @@ static std::vector<u8> skipCmds = {};
 
 void Rando::ActorBehavior::InitEnAlBehavior() {
 
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_AL, IS_RANDO, [](Actor* actor) { skipCmds.clear(); });
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_AL, (IS_RANDO || IS_ARCHI), [](Actor* actor) { skipCmds.clear(); });
 
-    COND_VB_SHOULD(VB_MADAME_AROMA_ASK_FOR_HELP, IS_RANDO,
+    COND_VB_SHOULD(VB_MADAME_AROMA_ASK_FOR_HELP, (IS_RANDO || IS_ARCHI),
                    { *should = !RANDO_SAVE_CHECKS[RC_MAYORS_OFFICE_KAFEIS_MASK].cycleObtained; });
     // "I'm counting on you"
-    COND_ID_HOOK(OnOpenText, 0x2AA2, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x2AA2, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         Message_BombersNotebookQueueEvent(gPlayState, BOMBERS_NOTEBOOK_EVENT_MET_MADAME_AROMA);
         Message_BombersNotebookQueueEvent(gPlayState, BOMBERS_NOTEBOOK_EVENT_RECEIVED_KAFEIS_MASK);
     });
 
-    COND_VB_SHOULD(VB_EXEC_MSG_EVENT, IS_RANDO, {
+    COND_VB_SHOULD(VB_EXEC_MSG_EVENT, (IS_RANDO || IS_ARCHI), {
         u32 cmdId = va_arg(args, u32);
         Actor* actor = va_arg(args, Actor*);
 

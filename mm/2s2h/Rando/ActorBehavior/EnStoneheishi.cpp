@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -13,7 +14,7 @@ void func_80BC9E50(EnStoneheishi* enStoneheishi, PlayState* play);
  * ACTOR_FLAG_TALK, other actor data, and finishes actor's dialogue.
  */
 void Rando::ActorBehavior::InitEnStoneheishiBehavior() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         if (actor->id == ACTOR_EN_STONE_HEISHI) {
@@ -34,5 +35,5 @@ void Rando::ActorBehavior::InitEnStoneheishiBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_STONE_HEISHI_SET_ACTION, IS_RANDO, { *should = false; });
+    COND_VB_SHOULD(VB_STONE_HEISHI_SET_ACTION, (IS_RANDO || IS_ARCHI), { *should = false; });
 }

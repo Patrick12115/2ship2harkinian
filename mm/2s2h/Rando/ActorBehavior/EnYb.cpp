@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -14,10 +15,10 @@ void Rando::ActorBehavior::InitEnYbBehavior() {
      * checks if you have Kamaro's Mask in your inventory before marking his quest as complete. Normally, this is always
      * true, making the check redundant. For randomizer, we wrap that check.
      */
-    COND_VB_SHOULD(VB_HAVE_KAMAROS_MASK, IS_RANDO,
+    COND_VB_SHOULD(VB_HAVE_KAMAROS_MASK, (IS_RANDO || IS_ARCHI),
                    { *should = RANDO_SAVE_CHECKS[RC_TERMINA_FIELD_KAMARO_MASK].eligible; });
 
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         if (actor->id == ACTOR_EN_YB) {

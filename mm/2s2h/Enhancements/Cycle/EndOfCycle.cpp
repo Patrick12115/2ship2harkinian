@@ -2,6 +2,7 @@
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include <variables.h>
@@ -98,7 +99,7 @@ void RegisterEndOfCycleSaveHooks() {
         }
     });
 
-    COND_HOOK(AfterEndOfCycleSave, CVAR_SWORD || IS_RANDO, []() {
+    COND_HOOK(AfterEndOfCycleSave, CVAR_SWORD || IS_RANDO || IS_ARCHI, []() {
         u8 curSword = (saveInfoCopy.equips.equipment & gEquipMasks[EQUIP_TYPE_SWORD]) >> gEquipShifts[EQUIP_TYPE_SWORD];
 
         // Check for razor sword equipped, stolen, or turned into the smithy

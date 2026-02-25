@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -7,12 +8,12 @@ extern "C" {
 }
 
 void Rando::ActorBehavior::InitEnJgBehavior() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_JG, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_JG, (IS_RANDO || IS_ARCHI), {
         // Do not grant vanilla Lullaby Intro item so that we can override it with rando item
         *should = false;
     });
 
-    COND_VB_SHOULD(VB_JG_THINK_YOU_KNOW_LULLABY, IS_RANDO, {
+    COND_VB_SHOULD(VB_JG_THINK_YOU_KNOW_LULLABY, (IS_RANDO || IS_ARCHI), {
         // Always consider lullaby known so we don't go into the cutscene to learn it
         *should = true;
 

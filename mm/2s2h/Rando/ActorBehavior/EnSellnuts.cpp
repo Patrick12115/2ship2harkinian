@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -13,7 +14,7 @@ void func_80ADB0D8(EnSellnuts* enSellnuts, PlayState* play);
 u16 D_80ADD930_copy[] = { 0x0619, 0x0613, 0x0613 };
 
 void Rando::ActorBehavior::InitEnSellnutsBehavior() {
-    COND_ID_HOOK(OnActorUpdate, ACTOR_EN_SELLNUTS, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorUpdate, ACTOR_EN_SELLNUTS, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         EnSellnuts* enSellnuts = (EnSellnuts*)actor;
 
         if (enSellnuts->actionFunc == func_80ADBBEC) {

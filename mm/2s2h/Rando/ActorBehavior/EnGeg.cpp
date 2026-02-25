@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 
@@ -8,9 +9,10 @@ extern "C" {
 }
 
 void Rando::ActorBehavior::InitEnGegBehavior() {
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_GEG, IS_RANDO, [](Actor* actor) { SET_WEEKEVENTREG(WEEKEVENTREG_35_40); });
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_GEG, (IS_RANDO || IS_ARCHI),
+                 [](Actor* actor) { SET_WEEKEVENTREG(WEEKEVENTREG_35_40); });
 
-    COND_VB_SHOULD(VB_GIVE_DON_GERO_MASK, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_DON_GERO_MASK, (IS_RANDO || IS_ARCHI), {
         EnGeg* refActor = va_arg(args, EnGeg*);
 
         if (refActor == nullptr || refActor->actor.id != ACTOR_EN_GEG) {
@@ -23,7 +25,7 @@ void Rando::ActorBehavior::InitEnGegBehavior() {
         *should = false;
     });
 
-    COND_ID_HOOK(OnOpenText, 0xd75, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0xd75, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         RandoItemId randoItemId = RANDO_SAVE_CHECKS[RC_MOUNTAIN_VILLAGE_DON_GERO_MASK].randoItemId;
         entry.msg = "I could tell you really wanted %y{{itemName}}%w! I'm going back to Goron Village.\xE0";

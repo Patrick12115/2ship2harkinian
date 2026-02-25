@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/Enhancements/FrameInterpolation/FrameInterpolation.h"
 #include "2s2h/Rando/StaticData/StaticData.h"
@@ -162,7 +163,7 @@ void EnBox_RandoDraw(Actor* actor, PlayState* play) {
 // This simply prevents the player from getting an item from the chest, but still
 // plays the chest opening animation and ensure the treasure chest flag is set
 void Rando::ActorBehavior::InitEnBoxBehavior() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_CHEST, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_CHEST, (IS_RANDO || IS_ARCHI), {
         EnBox* enBox = va_arg(args, EnBox*);
         Actor* actor = (Actor*)enBox;
         Player* player = GET_PLAYER(gPlayState);
@@ -173,7 +174,7 @@ void Rando::ActorBehavior::InitEnBoxBehavior() {
     });
 
     // Replace the item in the chest with a recovery heart, to prevent any other item side effects
-    COND_ID_HOOK(ShouldActorInit, ACTOR_EN_BOX, IS_RANDO, [](Actor* actor, bool* should) {
+    COND_ID_HOOK(ShouldActorInit, ACTOR_EN_BOX, (IS_RANDO || IS_ARCHI), [](Actor* actor, bool* should) {
         auto randoStaticCheck = Rando::StaticData::GetCheckFromFlag(FLAG_CYCL_SCENE_CHEST, ENBOX_GET_CHEST_FLAG(actor),
                                                                     gPlayState->sceneId);
         RandoCheckId randoCheckId = randoStaticCheck.randoCheckId;
@@ -207,7 +208,7 @@ static RegisterShipInitFunc initFunc(
 
         while (actor != NULL) {
             if (actor->id == ACTOR_EN_BOX) {
-                if (CVarGetInteger("gRando.CSMC", 0) && IS_RANDO) {
+                if (CVarGetInteger("gRando.CSMC", 0) && (IS_RANDO || IS_ARCHI)) {
                     actor->draw = EnBox_RandoDraw;
                 } else if (actor->draw == EnBox_RandoDraw) {
                     actor->draw = EnBox_Draw;

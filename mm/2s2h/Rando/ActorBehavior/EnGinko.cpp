@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -9,7 +10,7 @@ void EnGinkoMan_SetupIdle(EnGinkoMan* enGinkoMan);
 }
 
 void Rando::ActorBehavior::InitEnGinkoBehavior() {
-    COND_VB_SHOULD(VB_BANKER_GIVE_REWARD, IS_RANDO, {
+    COND_VB_SHOULD(VB_BANKER_GIVE_REWARD, (IS_RANDO || IS_ARCHI), {
         EnGinkoMan* enGinkoMan = va_arg(args, EnGinkoMan*);
 
         EnGinkoMan_SetupIdle(enGinkoMan);

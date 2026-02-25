@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -12,7 +13,7 @@ void func_809C5598(EnBomBowlMan* thisx, PlayState* play);
 
 void Rando::ActorBehavior::InitEnBomBowlManBehavior() {
     // This handles getting the check in East clock town
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         Player* player = GET_PLAYER(gPlayState);
@@ -34,7 +35,7 @@ void Rando::ActorBehavior::InitEnBomBowlManBehavior() {
     });
 
     // This handles the check in north clock town, after bombers have been found
-    COND_VB_SHOULD(VB_BOM_BOWL_MAN_GIVE_ITEM, IS_RANDO, {
+    COND_VB_SHOULD(VB_BOM_BOWL_MAN_GIVE_ITEM, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
         EnBomBowlMan* enBomBowlMan = (EnBomBowlMan*)actor;
 
@@ -50,7 +51,7 @@ void Rando::ActorBehavior::InitEnBomBowlManBehavior() {
     });
 
     // Override the original requirement, which is the absence of the Bombers' Notebook
-    COND_VB_SHOULD(VB_BE_ELIGIBLE_FOR_BOMBERS_NOTEBOOK, IS_RANDO, {
+    COND_VB_SHOULD(VB_BE_ELIGIBLE_FOR_BOMBERS_NOTEBOOK, (IS_RANDO || IS_ARCHI), {
         *should = CHECK_WEEKEVENTREG(WEEKEVENTREG_73_80) && !RANDO_SAVE_CHECKS[RC_CLOCK_TOWN_BOMBERS_NOTEBOOK].obtained;
     });
 };

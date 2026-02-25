@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/ObjectExtension/ActorListIndex.h"
 #include "2s2h/CustomItem/CustomItem.h"
@@ -38,6 +39,16 @@ EnItem00* spawnReplacementItem(Vec3f& pos, Rando::StaticData::RandoStaticCheck& 
                     break;
                 case FLAG_CYCL_SCENE_COLLECTIBLE:
                     Flags_SetCollectible(play, randoStaticCheck.flag);
+
+                    // For Archipelago saves, also mark as eligible directly
+                    // This is necessary because if the collectible flag was already set
+                    // (e.g., from permanentSceneFlags), the OnSceneFlagSet hook won't trigger
+                    if (gSaveContext.save.shipSaveInfo.saveType == SAVETYPE_ARCHI) {
+                        if (RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId].shuffled &&
+                            !RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId].obtained) {
+                            RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId].eligible = true;
+                        }
+                    }
                     break;
                 default:
                     break;
@@ -46,15 +57,18 @@ EnItem00* spawnReplacementItem(Vec3f& pos, Rando::StaticData::RandoStaticCheck& 
         [](Actor* actor, PlayState* play) {
             auto& randoSaveCheck = RANDO_SAVE_CHECKS[CUSTOM_ITEM_PARAM];
             Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-            Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM),
-                            (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
+            RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM);
+            if (randoItemId == RI_JUNK) {
+                randoItemId = Rando::CurrentJunkItem((RandoCheckId)CUSTOM_ITEM_PARAM);
+            }
+            Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
         });
 }
 
 void Rando::ActorBehavior::InitEnItem00Behavior() {
     // Identify freestanding based on the spawner's scene ID, room, and actor list index. The resulting RC is the base
     // value, with each child incrementing to it to get its own RC. The RCs must be contiguous for this to work.
-    COND_VB_SHOULD(VB_OBJ_MURE3_DROP_COLLECTIBLE, IS_RANDO, {
+    COND_VB_SHOULD(VB_OBJ_MURE3_DROP_COLLECTIBLE, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
         auto it = freestandingMap.find({ gPlayState->sceneId, actor->room, GetActorListIndex(actor) });
         if (it != freestandingMap.end()) {
@@ -62,7 +76,11 @@ void Rando::ActorBehavior::InitEnItem00Behavior() {
             RandoCheckId randoCheckId = static_cast<RandoCheckId>(it->second + i);
             auto randoStaticCheck = Rando::StaticData::Checks[randoCheckId];
             auto randoSaveCheck = RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId];
-            if (randoSaveCheck.shuffled && !randoSaveCheck.cycleObtained) {
+            // For Archipelago, check 'obtained' instead of 'cycleObtained'
+            // Once an AP location is collected, it's permanent (no cycle resets)
+            bool shouldSpawn =
+                randoSaveCheck.shuffled && (IS_ARCHI ? !randoSaveCheck.obtained : !randoSaveCheck.cycleObtained);
+            if (shouldSpawn) {
                 ObjMure3* objMure3 = (ObjMure3*)actor;
                 Vec3f spawnPos;
                 spawnPos.y = objMure3->actor.world.pos.y;
@@ -85,7 +103,7 @@ void Rando::ActorBehavior::InitEnItem00Behavior() {
 
     // For freestandings that are identifiable based on collectible flags, pre-empt their normal spawns and spawn a
     // custom item in their places.
-    COND_ID_HOOK(ShouldActorInit, ACTOR_EN_ITEM00, IS_RANDO, [](Actor* actor, bool* should) {
+    COND_ID_HOOK(ShouldActorInit, ACTOR_EN_ITEM00, (IS_RANDO || IS_ARCHI), [](Actor* actor, bool* should) {
         EnItem00* item00 = (EnItem00*)actor;
 
         // If it's one of our items ignore it
@@ -106,13 +124,24 @@ void Rando::ActorBehavior::InitEnItem00Behavior() {
 
         auto randoSaveCheck = RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId];
 
-        if (!randoSaveCheck.shuffled || randoSaveCheck.cycleObtained) {
+        // For Archipelago, check 'obtained' instead of 'cycleObtained'
+        // Once an AP location is collected, it's permanent (no cycle resets)
+        bool isObtained = IS_ARCHI ? randoSaveCheck.obtained : randoSaveCheck.cycleObtained;
+
+        // If not shuffled, let vanilla item spawn
+        if (!randoSaveCheck.shuffled) {
             return;
         }
 
-        // Prevent the original item from spawning
+        // Always prevent the vanilla item from spawning for shuffled checks
         *should = false;
 
+        // If already obtained, don't spawn replacement item either
+        if (isObtained) {
+            return;
+        }
+
+        // Spawn replacement item
         spawnReplacementItem(actor->world.pos, randoStaticCheck);
     });
 }

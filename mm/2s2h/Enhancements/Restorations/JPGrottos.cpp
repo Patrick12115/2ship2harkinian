@@ -1,6 +1,7 @@
 #include <libultraship/libultraship.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/ObjectExtension/ActorListIndex.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/CustomItem/CustomItem.h"
@@ -39,9 +40,9 @@ void RegisterJPGrottos() {
     // Move single freestanding rupee that's on top of the new grotto location
     COND_ID_HOOK(ShouldActorInit, ACTOR_EN_ITEM00, CVAR, [](Actor* actor, bool* should) {
         if (gPlayState->sceneId == SCENE_22DEKUCITY) {
-            if ((IS_RANDO && actor->params == ITEM00_NOTHING &&
+            if (((IS_RANDO || IS_ARCHI) && actor->params == ITEM00_NOTHING &&
                  CUSTOM_ITEM_PARAM == RC_DEKU_PALACE_FREESTANDING_RUPEE_07) ||
-                (!IS_RANDO && ENITEM00_GET_7F00(actor) == 0x11)) {
+                (!(IS_RANDO || IS_ARCHI) && ENITEM00_GET_7F00(actor) == 0x11)) {
                 actor->world.pos.x = -507.0f;
                 actor->world.pos.y = 0.0f;
                 actor->world.pos.z = 1334.0f;

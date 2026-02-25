@@ -1,6 +1,7 @@
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/Rando/Rando.h"
 
 extern "C" {
@@ -12,7 +13,7 @@ extern "C" {
 
 void RegisterEnableSunsSong() {
     COND_VB_SHOULD(VB_SONG_AVAILABLE_TO_PLAY, CVAR, {
-        if (IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SONG_SUN]) {
+        if ((IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_SONG_SUN]) {
             return;
         }
 

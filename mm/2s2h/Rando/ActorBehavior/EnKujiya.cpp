@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 
@@ -9,7 +10,7 @@ void EnKujiya_Wait(EnKujiya* enKujiya, PlayState* play);
 }
 
 void Rando::ActorBehavior::InitEnKujiyaBehavior() {
-    COND_VB_SHOULD(VB_GIVE_LOTTERY_WINNINGS, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_LOTTERY_WINNINGS, (IS_RANDO || IS_ARCHI), {
         EnKujiya* refActor = va_arg(args, EnKujiya*);
 
         RANDO_SAVE_CHECKS[RC_CLOCK_TOWN_WEST_LOTTERY].eligible = true;
@@ -17,7 +18,7 @@ void Rando::ActorBehavior::InitEnKujiyaBehavior() {
         *should = false;
     });
 
-    COND_ID_HOOK(OnOpenText, 0x2b5c, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x2b5c, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "Step right up! For a measly %p10 Rupees%w, your dreams could come true!\x11\x13\x12";
         entry.msg += "Guess all three numbers to win %p{{itemName}}%w!\x19";
@@ -29,7 +30,7 @@ void Rando::ActorBehavior::InitEnKujiyaBehavior() {
         *loadFromMessageTable = false;
     });
 
-    COND_ID_HOOK(OnOpenText, 0x2b66, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x2b66, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "Congratulations! You win the jackpot: %p{{itemName}}%w!\x19";
         RandoItemId randoItemId = RANDO_SAVE_CHECKS[RC_CLOCK_TOWN_WEST_LOTTERY].randoItemId;

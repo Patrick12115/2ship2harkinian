@@ -1,6 +1,7 @@
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/Rando/Logic/Logic.h"
 
 extern "C" {
@@ -25,7 +26,7 @@ void RegisterSkipScarecrowSong() {
          */
         if ((enKakasi->picto.actor.xzDistToPlayer < enKakasi->songSummonDist) &&
             ((BREG(1) != 0) || (gPlayState->msgCtx.ocarinaMode == OCARINA_MODE_ACTIVE))) {
-            if (IS_RANDO && !Rando::Logic::canPlaySong(OCARINA_SONG_SCARECROW_SPAWN)) {
+            if ((IS_RANDO || IS_ARCHI) && !Rando::Logic::canPlaySong(OCARINA_SONG_SCARECROW_SPAWN)) {
                 return;
             }
 

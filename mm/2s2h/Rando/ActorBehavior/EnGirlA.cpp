@@ -1,4 +1,6 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
+#include "2s2h/Network/Archipelago/ArchipelagoBridge.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 #include "2s2h/Rando/MiscBehavior/Traps.h"
@@ -32,7 +34,12 @@ void EnGirlA_RandoDrawFunc(Actor* actor, PlayState* play) {
 
     Matrix_RotateYS(enGirlA->rotY, MTXMODE_APPLY);
 
-    Rando::DrawItem(randoSaveCheck.randoItemId, (RandoCheckId)actor->world.rot.z, actor);
+    // Convert the item before drawing (e.g., bombs -> junk if no bomb bag, duplicate masks -> junk)
+    RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)actor->world.rot.z);
+    if (randoItemId == RI_JUNK) {
+        randoItemId = Rando::CurrentJunkItem((RandoCheckId)actor->world.rot.z);
+    }
+    Rando::DrawItem(randoItemId, (RandoCheckId)actor->world.rot.z, actor);
 }
 
 void EnGirlA_RandoBought(PlayState* play, EnGirlA* enGirlA) {
@@ -42,6 +49,15 @@ void EnGirlA_RandoBought(PlayState* play, EnGirlA* enGirlA) {
 
 void EnGirlA_RandoRestock(PlayState* play, EnGirlA* enGirlA) {
     auto randoSaveCheck = RANDO_SAVE_CHECKS[enGirlA->actor.world.rot.z];
+
+    // For AP saves, don't restock if the location has been checked
+    if (IS_ARCHI) {
+        auto apLocationId = ArchipelagoBridge::GetLocationIdFromRandoCheck((RandoCheckId)enGirlA->actor.world.rot.z);
+        if (apLocationId != 0 && ArchipelagoBridge::IsLocationChecked(apLocationId)) {
+            // Location was already checked, keep it out of stock
+            return;
+        }
+    }
 
     if (Rando::IsItemObtainable(randoSaveCheck.randoItemId, (RandoCheckId)enGirlA->actor.world.rot.z)) {
         enGirlA->isOutOfStock = false;
@@ -66,12 +82,24 @@ s32 EnGirlA_RandoCanBuyFunc(PlayState* play, EnGirlA* enGirlA) {
 void EnGirlA_RandoBuyFunc(PlayState* play, EnGirlA* enGirlA) {
     auto& randoSaveCheck = RANDO_SAVE_CHECKS[enGirlA->actor.world.rot.z];
     RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)enGirlA->actor.world.rot.z);
-    randoSaveCheck.obtained = true;
+
+    // Mark check as eligible to queue it for processing
+    randoSaveCheck.eligible = true;
+
+    // Deduct rupees
     Rupees_ChangeBy(-play->msgCtx.unk1206C);
+
     if (randoItemId == RI_TRAP) {
         RollTrapType();
     }
-    Rando::GiveItem(randoItemId);
+
+    // For rando saves, give item immediately
+    // For AP saves, the check will be queued and item received from server
+    if (IS_RANDO) {
+        randoSaveCheck.obtained = true;
+        Rando::GiveItem(randoItemId);
+    }
+    // For AP saves, obtained will be set when the item comes back from the server
 }
 
 void EnGirlA_RandoBuyFanfareFunc(PlayState* play, EnGirlA* enGirlA) {
@@ -104,8 +132,25 @@ void EnGirlA_RandoInit(EnGirlA* enGirlA, PlayState* play) {
 
     auto randoSaveCheck = RANDO_SAVE_CHECKS[enGirlA->actor.world.rot.z];
 
-    if (!Rando::IsItemObtainable(randoSaveCheck.randoItemId, (RandoCheckId)enGirlA->actor.world.rot.z) &&
+    // Check if the item should be out of stock
+    bool shouldBeOutOfStock = false;
+
+    // For AP saves, check if the location has been checked (marked when eligible is set)
+    if (IS_ARCHI) {
+        auto apLocationId = ArchipelagoBridge::GetLocationIdFromRandoCheck((RandoCheckId)enGirlA->actor.world.rot.z);
+        if (apLocationId != 0 && ArchipelagoBridge::IsLocationChecked(apLocationId)) {
+            shouldBeOutOfStock = true;
+        }
+    }
+
+    // For rando saves or if not already checked via AP, use the traditional check
+    if (!shouldBeOutOfStock &&
+        !Rando::IsItemObtainable(randoSaveCheck.randoItemId, (RandoCheckId)enGirlA->actor.world.rot.z) &&
         randoSaveCheck.obtained) {
+        shouldBeOutOfStock = true;
+    }
+
+    if (shouldBeOutOfStock) {
         enGirlA->isOutOfStock = true;
         enGirlA->actor.draw = NULL;
     } else {
@@ -270,7 +315,7 @@ RandoCheckId IdentifyActiveShopItem() {
 }
 
 void Rando::ActorBehavior::InitEnGirlABehavior() {
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_GIRLA, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_GIRLA, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         EnGirlA* enGirlA = (EnGirlA*)actor;
 
         RandoCheckId randoCheckId = IdentifyShopItem(actor);
@@ -281,7 +326,7 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
     });
 
     // Shop item description
-    COND_ID_HOOK(OnOpenText, RANDO_DESC_TEXT_ID, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, RANDO_DESC_TEXT_ID, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         RandoCheckId randoCheckId = IdentifyActiveShopItem();
 
         if (randoCheckId == RC_UNKNOWN) {
@@ -312,7 +357,7 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
     });
 
     // Shop item purchase
-    COND_ID_HOOK(OnOpenText, RANDO_CHOICE_TEXT_ID, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, RANDO_CHOICE_TEXT_ID, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         RandoCheckId randoCheckId = IdentifyActiveShopItem();
 
         if (randoCheckId == RC_UNKNOWN) {
@@ -336,7 +381,7 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
     });
 
     // Magic Potion Shop Hag "I can't get the ingredients for this"
-    COND_ID_HOOK(OnOpenText, 0x880, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x880, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         RandoCheckId randoCheckId = IdentifyActiveShopItem();
 
         if (randoCheckId == RC_UNKNOWN) {
@@ -361,7 +406,7 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
     });
 
     // Magic Potion Shop Hag "Well, I can use this to make something, come back later"
-    COND_ID_HOOK(OnOpenText, 0x884, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x884, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         RandoCheckId randoCheckId = RC_HAGS_POTION_SHOP_ITEM_01;
         auto& randoSaveCheck = RANDO_SAVE_CHECKS[randoCheckId];
 
@@ -392,7 +437,7 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
     });
 
     // Bomb Shop "We're expecting new stock" (hint)
-    COND_ID_HOOK(OnOpenText, 0x648, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x648, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM];
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg =
@@ -405,7 +450,7 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
     });
 
     // Bomb Shop "We should have had..."
-    COND_ID_HOOK(OnOpenText, 0x64A, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x64A, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM];
         auto randoStaticItem = Rando::StaticData::Items[randoSaveCheck.randoItemId];
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
@@ -418,7 +463,7 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
     });
 
     // Bomb Shop "I thought we could finally sell"
-    COND_ID_HOOK(OnOpenText, 0x660, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x660, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM];
 
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
@@ -432,7 +477,7 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
     });
 
     // Bomb Shop "We just got a larger bomb bag in stock"
-    COND_ID_HOOK(OnOpenText, 0x649, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x649, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM];
         auto randoStaticItem = Rando::StaticData::Items[randoSaveCheck.randoItemId];
 
@@ -447,21 +492,21 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
     });
 
     // Curiosity Shop "Tonight's special was stolen" (check that is shared with Bomb Shop)
-    COND_ID_HOOK(OnOpenText, 0x29D3, IS_RANDO, renameStolenBombBag);
-    COND_ID_HOOK(OnOpenText, 0x29D7, IS_RANDO, renameStolenBombBag);
+    COND_ID_HOOK(OnOpenText, 0x29D3, (IS_RANDO || IS_ARCHI), renameStolenBombBag);
+    COND_ID_HOOK(OnOpenText, 0x29D7, (IS_RANDO || IS_ARCHI), renameStolenBombBag);
     // Curiosity Shop "Tonight's bargain is" (special item check)
-    COND_ID_HOOK(OnOpenText, 0x29D4, IS_RANDO, renameSpecialBargain);
-    COND_ID_HOOK(OnOpenText, 0x29D8, IS_RANDO, renameSpecialBargain);
+    COND_ID_HOOK(OnOpenText, 0x29D4, (IS_RANDO || IS_ARCHI), renameSpecialBargain);
+    COND_ID_HOOK(OnOpenText, 0x29D8, (IS_RANDO || IS_ARCHI), renameSpecialBargain);
 
     // Magic Potion Shop Hag CANBUY_RESULT_CANNOT_GET_NOW (this text ID does not exist and just softlocks)
-    COND_ID_HOOK(OnOpenText, 0x643, IS_RANDO, ReplaceCannotBuyMessage);
+    COND_ID_HOOK(OnOpenText, 0x643, (IS_RANDO || IS_ARCHI), ReplaceCannotBuyMessage);
     // Goron Shop CANBUY_RESULT_CANNOT_GET_NOW
-    COND_ID_HOOK(OnOpenText, 0xBD2, IS_RANDO, ReplaceCannotBuyMessage);
+    COND_ID_HOOK(OnOpenText, 0xBD2, (IS_RANDO || IS_ARCHI), ReplaceCannotBuyMessage);
     // Bomb Shop CANBUY_RESULT_CANNOT_GET_NOW
-    COND_ID_HOOK(OnOpenText, 0x645, IS_RANDO, ReplaceCannotBuyMessage);
+    COND_ID_HOOK(OnOpenText, 0x645, (IS_RANDO || IS_ARCHI), ReplaceCannotBuyMessage);
     // Trading Post CANBUY_RESULT_CANNOT_GET_NOW
-    COND_ID_HOOK(OnOpenText, 0x6BE, IS_RANDO, ReplaceCannotBuyMessage);
-    COND_ID_HOOK(OnOpenText, 0x6DB, IS_RANDO, ReplaceCannotBuyMessage);
+    COND_ID_HOOK(OnOpenText, 0x6BE, (IS_RANDO || IS_ARCHI), ReplaceCannotBuyMessage);
+    COND_ID_HOOK(OnOpenText, 0x6DB, (IS_RANDO || IS_ARCHI), ReplaceCannotBuyMessage);
     // Zora Shop CANBUY_RESULT_CANNOT_GET_NOW (this text ID does not exist and just softlocks)
-    COND_ID_HOOK(OnOpenText, 0x12E1, IS_RANDO, ReplaceCannotBuyMessage);
+    COND_ID_HOOK(OnOpenText, 0x12E1, (IS_RANDO || IS_ARCHI), ReplaceCannotBuyMessage);
 }

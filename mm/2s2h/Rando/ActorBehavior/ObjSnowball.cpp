@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomItem/CustomItem.h"
 #include "assets/2s2h_assets.h"
@@ -213,16 +214,19 @@ void SpawnSnowballDrop(Vec3f pos, RandoCheckId randoCheckId) {
         [](Actor* actor, PlayState* play) {
             auto& randoSaveCheck = RANDO_SAVE_CHECKS[CUSTOM_ITEM_PARAM];
             Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-            Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM),
-                            (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
+            RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM);
+            if (randoItemId == RI_JUNK) {
+                randoItemId = Rando::CurrentJunkItem((RandoCheckId)CUSTOM_ITEM_PARAM);
+            }
+            Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
         });
 }
 
 void Rando::ActorBehavior::InitObjSnowballBehavior() {
-    COND_ID_HOOK(ShouldActorInit, ACTOR_OBJ_SNOWBALL, IS_RANDO, IdentifySnowball);
-    COND_ID_HOOK(ShouldActorInit, ACTOR_OBJ_SNOWBALL2, IS_RANDO, IdentifySnowball);
+    COND_ID_HOOK(ShouldActorInit, ACTOR_OBJ_SNOWBALL, (IS_RANDO || IS_ARCHI), IdentifySnowball);
+    COND_ID_HOOK(ShouldActorInit, ACTOR_OBJ_SNOWBALL2, (IS_RANDO || IS_ARCHI), IdentifySnowball);
 
-    COND_VB_SHOULD(VB_SNOWBALL_DROP_COLLECTIBLE, IS_RANDO, {
+    COND_VB_SHOULD(VB_SNOWBALL_DROP_COLLECTIBLE, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
 
         RandoCheckId randoCheckId = GetObjectRandoCheckId(actor);
@@ -237,7 +241,7 @@ void Rando::ActorBehavior::InitObjSnowballBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_SNOWBALL_SET_FLAG, IS_RANDO, {
+    COND_VB_SHOULD(VB_SNOWBALL_SET_FLAG, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
         ActorId actorToSpawn = (ActorId)va_arg(args, s32);
         ObjSnowballActionFunc actorFunction = va_arg(args, ObjSnowballActionFunc);

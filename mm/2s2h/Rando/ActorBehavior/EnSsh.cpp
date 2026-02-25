@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipUtils.h"
@@ -37,20 +38,20 @@ void ApplyOceanSpiderHouseHint(u16* textId, bool* loadFromMessageTable) {
 }
 
 void Rando::ActorBehavior::InitEnSshBehavior() {
-    bool shouldRegister = IS_RANDO && RANDO_SAVE_OPTIONS[RO_HINTS_SPIDER_HOUSES];
+    bool shouldRegister = (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_HINTS_SPIDER_HOUSES];
 
     // "Recruiting Soldiers..." Posters around Clock Town
     COND_ID_HOOK(OnOpenText, 0x915, shouldRegister, ApplySwampSpiderHouseHint);
     COND_ID_HOOK(OnOpenText, 0x1130, shouldRegister, ApplyOceanSpiderHouseHint);
     COND_ID_HOOK(OnOpenText, 0x1131, shouldRegister, ApplyOceanSpiderHouseHint);
 
-    COND_ID_HOOK(ShouldActorInit, ACTOR_EN_SSH, IS_RANDO, [](Actor* actor, bool* should) {
+    COND_ID_HOOK(ShouldActorInit, ACTOR_EN_SSH, (IS_RANDO || IS_ARCHI), [](Actor* actor, bool* should) {
         // Skip first dialog
         SET_WEEKEVENTREG(WEEKEVENTREG_TALKED_SWAMP_SPIDER_HOUSE_MAN);
     });
 
     // Use RO setting for tokens required
-    COND_VB_SHOULD(VB_HAVE_ALL_SKULLTULA_TOKENS, IS_RANDO, {
+    COND_VB_SHOULD(VB_HAVE_ALL_SKULLTULA_TOKENS, (IS_RANDO || IS_ARCHI), {
         /*
          * Note that the use case for determining whether to spawn the squatter in South Clock Town directly checks the
          * skullTokenCount value with the Oceanside bitwise operation, rather than call Inventory_GetSkullTokenCount
@@ -61,7 +62,7 @@ void Rando::ActorBehavior::InitEnSshBehavior() {
         *should = Inventory_GetSkullTokenCount(gPlayState->sceneId) >= RANDO_SAVE_OPTIONS[RO_SKULLTULA_TOKENS_REQUIRED];
     });
 
-    COND_VB_SHOULD(VB_NOT_HAVE_ALL_SKULLTULA_TOKENS, IS_RANDO, {
+    COND_VB_SHOULD(VB_NOT_HAVE_ALL_SKULLTULA_TOKENS, (IS_RANDO || IS_ARCHI), {
         *should = Inventory_GetSkullTokenCount(gPlayState->sceneId) < RANDO_SAVE_OPTIONS[RO_SKULLTULA_TOKENS_REQUIRED];
     });
 }

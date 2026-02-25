@@ -4,6 +4,7 @@
 #include "2s2h/ShipUtils.h"
 #include "2s2h/ShipInit.hpp"
 #include <cassert>
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 // Copied from z_player.c, we could instead move this to a header file, idk
 typedef struct GetItemEntry {
@@ -141,12 +142,12 @@ void RefreshObtainableTrapItems() {
 
 static RegisterShipInitFunc refreshInitFunc(
     []() {
-        COND_HOOK(OnSceneInit, IS_RANDO, [](s8 sceneId, s8 spawnNum) {
+        COND_HOOK(OnSceneInit, (IS_RANDO || IS_ARCHI), [](s8 sceneId, s8 spawnNum) {
             RefreshObtainableJunkItems();
             RefreshObtainableTrapItems();
         });
 
-        if (IS_RANDO) {
+        if (IS_RANDO || IS_ARCHI) {
             for (auto& [randoCheckId, _] : Rando::StaticData::Checks) {
                 RandoSaveCheck saveCheck = RANDO_SAVE_CHECKS[randoCheckId];
                 if (saveCheck.shuffled &&
@@ -160,6 +161,11 @@ static RegisterShipInitFunc refreshInitFunc(
     { "IS_RANDO" });
 
 RandoItemId Rando::CurrentJunkItem(RandoCheckId randoCheckId) {
+    // Safety check: if no junk items are obtainable, return green rupee as fallback
+    if (obtainableJunkItems.empty()) {
+        return RI_RUPEE_GREEN;
+    }
+
     if (CVarGetInteger("gRando.JunkItems", 0) == 0) {
         Ship_Random_Seed(gSaveContext.save.shipSaveInfo.rando.finalSeed + randoCheckId +
                          (gPlayState->gameplayFrames / 30));
@@ -596,6 +602,8 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
                 return false;
             }
             return true;
+        case RI_OCARINA:
+            return INV_CONTENT(ITEM_OCARINA_OF_TIME) != ITEM_OCARINA_OF_TIME;
         case RI_OCARINA_BUTTON_A:
         case RI_OCARINA_BUTTON_C_DOWN:
         case RI_OCARINA_BUTTON_C_LEFT:
@@ -644,6 +652,12 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
 }
 
 RandoItemId Rando::ConvertItem(RandoItemId randoItemId, RandoCheckId randoCheckId) {
+    // Archipelago placeholders must never be converted or treated as real items.
+    if (randoItemId == RI_ARCHIPELAGO_PROGRESSIVE || randoItemId == RI_ARCHIPELAGO_USEFUL ||
+        randoItemId == RI_ARCHIPELAGO_JUNK) {
+        return randoItemId;
+    }
+
     if (IsItemObtainable(randoItemId, randoCheckId)) {
         switch (randoItemId) {
             case RI_TIME_PROGRESSIVE: {

@@ -4,6 +4,7 @@
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include <functions.h>
@@ -14,7 +15,7 @@ extern "C" {
 
 // Forced on in rando for now
 void RegisterSkipLearningNewWaveBossaNova() {
-    COND_VB_SHOULD(VB_START_CUTSCENE, CVAR || IS_RANDO, {
+    COND_VB_SHOULD(VB_START_CUTSCENE, CVAR || IS_RANDO || IS_ARCHI, {
         s16* csId = va_arg(args, s16*);
         if (gPlayState->sceneId == SCENE_LABO && *csId == 11) {
             if (GameInteractor_Should(VB_GIVE_NEW_WAVE_BOSSA_NOVA, true)) {
@@ -43,4 +44,4 @@ void RegisterSkipLearningNewWaveBossaNova() {
     });
 }
 
-static RegisterShipInitFunc initFunc(RegisterSkipLearningNewWaveBossaNova, { CVAR_NAME, "IS_RANDO" });
+static RegisterShipInitFunc initFunc(RegisterSkipLearningNewWaveBossaNova, { CVAR_NAME, "IS_RANDO", "IS_ARCHI" });

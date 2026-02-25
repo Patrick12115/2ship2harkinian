@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.26.0 FATAL_ERROR)
 set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
 
 project(2ship LANGUAGES C CXX)
+
+option(BUILD_ARCHIPELAGO "Build Archipelago support" OFF)
+
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "The C++ standard to use")
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -18,22 +21,22 @@ set (BUILD_SHARED_LIBS OFF CACHE STRING "install/link shared instead of static l
 # Set target arch type if empty. Visual studio solution generator provides it.
 ################################################################################
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	if(NOT CMAKE_VS_PLATFORM_NAME)
-		set(CMAKE_VS_PLATFORM_NAME "x64")
-	endif()
-	message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
+    if(NOT CMAKE_VS_PLATFORM_NAME)
+        set(CMAKE_VS_PLATFORM_NAME "x64")
+    endif()
+    message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
 
-	if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
-		OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32"))
-		message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
-	endif()
+    if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
+        OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32"))
+        message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
+    endif()
 endif()
 
 
 FetchContent_Declare(
     dr_libs
     GIT_REPOSITORY https://github.com/mackron/dr_libs.git
-	GIT_TAG da35f9d6c7374a95353fd1df1d394d44ab66cf01
+    GIT_TAG da35f9d6c7374a95353fd1df1d394d44ab66cf01
 )
 FetchContent_MakeAvailable(dr_libs)
 
@@ -168,7 +171,7 @@ set(ALL_FILES
     ${Header_Files}
     ${Header_Files__include}
     ${ship__}
-	${libultra_headers}
+    ${libultra_headers}
     ${ship__Extractor}
     ${src__}
 )
@@ -184,38 +187,44 @@ endif()
 
 set(ROOT_NAMESPACE 2s2h)
 
+if (MSVC)
+    # Archipelago.cpp gets huge and can exceed COFF section limits
+    target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
+endif()
+
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	set_target_properties(${PROJECT_NAME} PROPERTIES
-		VS_GLOBAL_KEYWORD "Win32Proj"
-	)
-	set_target_properties(${PROJECT_NAME} PROPERTIES
-		INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-	)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VS_GLOBAL_KEYWORD "Win32Proj"
+    )
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
+    )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set_target_properties(${PROJECT_NAME} PROPERTIES
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
         OUTPUT_NAME "2s2h-macos"
     )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	set_target_properties(${PROJECT_NAME} PROPERTIES
-	OUTPUT_NAME "2s2h.elf"
-	)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+    OUTPUT_NAME "2s2h.elf"
+    )
 endif()
 ################################################################################
 # MSVC runtime library
 ################################################################################
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY)
-	string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
-		$<$<CONFIG:Debug>:
-			MultiThreadedDebug
-		>
-		$<$<CONFIG:Release>:
-			MultiThreaded
-		>
-		$<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
-	)
-	set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
+    get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY)
+    string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
+        $<$<CONFIG:Debug>:
+            MultiThreadedDebug
+        >
+        $<$<CONFIG:Release>:
+            MultiThreaded
+        >
+        $<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
+    )
+    set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 endif()
 ################################################################################
 # Compile definitions
@@ -229,77 +238,109 @@ if (BUILD_CROWD_CONTROL)
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE assets
-	${CMAKE_CURRENT_SOURCE_DIR}/include/
-	${CMAKE_CURRENT_SOURCE_DIR}/include/PR
-	${CMAKE_CURRENT_SOURCE_DIR}/src/
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/PR
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_SOURCE_DIR}/../libultraship/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../ZAPDTR/ZAPD/resource/type
-	${CMAKE_CURRENT_SOURCE_DIR}
-	${CMAKE_CURRENT_SOURCE_DIR}/2s2h/
-	${SDL2-INCLUDE}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/2s2h/
+    ${SDL2-INCLUDE}
     ${SDL2-NET-INCLUDE}
-	${CMAKE_CURRENT_SOURCE_DIR}/assets/
-	${dr_libs_SOURCE_DIR}
-	.
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/
+    ${dr_libs_SOURCE_DIR}
+    .
 )
 
+# --- Archipelago (apclientpp + wswrap) ---
+# All four dependencies are header-only at the pinned submodule commits.
+if (BUILD_ARCHIPELAGO AND NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
+    target_include_directories(${PROJECT_NAME} PRIVATE
+        "${CMAKE_SOURCE_DIR}/subprojects/apclientpp"
+        "${CMAKE_SOURCE_DIR}/subprojects/wswrap/include"
+        "${CMAKE_SOURCE_DIR}/subprojects/asio/asio/include"
+        "${CMAKE_SOURCE_DIR}/subprojects/websocketpp"
+        "${CMAKE_SOURCE_DIR}/subprojects/valijson/include"
+        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
+    )
+
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        ASIO_STANDALONE
+        $<$<PLATFORM_ID:Windows>:ASIO_NO_WIN32_LEAN_AND_MEAN>
+        $<$<PLATFORM_ID:Windows>:WIN32_LEAN_AND_MEAN>
+        $<$<PLATFORM_ID:Windows>:NOMINMAX>
+        $<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0601>
+    )
+
+    # websocketpp 0.8.2 has C++20 incompatibilities on GCC/Clang; compile with C++17.
+    # Skip PCH for this file so the C++17 override doesn't conflict with the C++20 PCH
+    # (which causes C2855 on MSVC and "C++20 was enabled in PCH" on clang).
+    # MSVC is more lenient with C++20 constructor template-id syntax so no flag needed there.
+    if (NOT MSVC)
+        set_source_files_properties(2s2h/Network/Archipelago/Archipelago.cpp PROPERTIES
+            COMPILE_FLAGS "-std=gnu++17"
+            SKIP_PRECOMPILE_HEADERS ON
+        )
+    endif()
+endif()
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	target_compile_definitions(${PROJECT_NAME} PRIVATE
-		"$<$<CONFIG:Debug>:"
-			"_DEBUG;"
-			"_CRT_SECURE_NO_WARNINGS;"
-			"ENABLE_DX11;"
-		">"
-		"$<$<CONFIG:Release>:"
-			"NDEBUG;"
-		">"
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        "$<$<CONFIG:Debug>:"
+            "_DEBUG;"
+            "_CRT_SECURE_NO_WARNINGS;"
+            "ENABLE_DX11;"
+        ">"
+        "$<$<CONFIG:Release>:"
+            "NDEBUG;"
+        ">"
            #"$<$<BOOL:${BUILD_CROWD_CONTROL}>:ENABLE_CROWD_CONTROL>"
-		"INCLUDE_GAME_PRINTF;"
+        "INCLUDE_GAME_PRINTF;"
            #"ENABLE_CROWD_CONTROL;"
-		"F3DEX_GBI_2"
-		"UNICODE;"
-		"_UNICODE"
+        "F3DEX_GBI_2"
+        "UNICODE;"
+        "_UNICODE"
         SPDLOG_ACTIVE_LEVEL=${SPDLOG_MIN_CUTOFF}
         LOG_LEVEL_GAME_PRINTS=${SPDLOG_LEVEL_OFF}
-		STORMLIB_NO_AUTO_LINK
-		"_CRT_SECURE_NO_WARNINGS;"
-		NOMINMAX
-	)
+        STORMLIB_NO_AUTO_LINK
+        "_CRT_SECURE_NO_WARNINGS;"
+        NOMINMAX
+    )
 elseif (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
-	target_compile_definitions(${PROJECT_NAME} PRIVATE
-		"$<$<CONFIG:Debug>:"
-			"_DEBUG;"
-		">"
-		"$<$<CONFIG:Release>:"
-			"NDEBUG;"
-		">"
-		"F3DEX_GBI_2;"
-		"SPDLOG_NO_THREAD_ID;"
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        "$<$<CONFIG:Debug>:"
+            "_DEBUG;"
+        ">"
+        "$<$<CONFIG:Release>:"
+            "NDEBUG;"
+        ">"
+        "F3DEX_GBI_2;"
+        "SPDLOG_NO_THREAD_ID;"
         "SPDLOG_NO_TLS;"
-		"STBI_NO_THREAD_LOCALS;"
+        "STBI_NO_THREAD_LOCALS;"
         SPDLOG_ACTIVE_LEVEL=${SPDLOG_MIN_CUTOFF}
         LOG_LEVEL_GAME_PRINTS=${SPDLOG_LEVEL_OFF}
-	)
+    )
 elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|AppleClang")
-	target_compile_definitions(${PROJECT_NAME} PRIVATE
-		"$<$<CONFIG:Debug>:"
-			"_DEBUG;"
-		">"
-		"$<$<CONFIG:Release>:"
-			"NDEBUG;"
-		">"
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        "$<$<CONFIG:Debug>:"
+            "_DEBUG;"
+        ">"
+        "$<$<CONFIG:Release>:"
+            "NDEBUG;"
+        ">"
         "F3DEX_GBI_2;"
-		# "$<$<BOOL:${BUILD_CROWD_CONTROL}>:ENABLE_CROWD_CONTROL>"
-		"_CONSOLE;"
-		"_CRT_SECURE_NO_WARNINGS;"
-		"ENABLE_OPENGL;"
-		"UNICODE;"
-		"_UNICODE;"
+        # "$<$<BOOL:${BUILD_CROWD_CONTROL}>:ENABLE_CROWD_CONTROL>"
+        "_CONSOLE;"
+        "_CRT_SECURE_NO_WARNINGS;"
+        "ENABLE_OPENGL;"
+        "UNICODE;"
+        "_UNICODE;"
         SPDLOG_ACTIVE_LEVEL=${SPDLOG_MIN_CUTOFF}
         LOG_LEVEL_GAME_PRINTS=${SPDLOG_LEVEL_OFF}
         "NON_MATCHING;"
         "NON_EQUIVALENT;"
-	)
+    )
 endif()
 ################################################################################
 # Compile and link options
@@ -315,13 +356,13 @@ if(MSVC)
             /Gy;
             /W3
         >
-	
-		/wd4024 #different types for formal and actual parameter [x]. Usually seen along side 4047.
-		/wd4047 #'uintptr_t' differs in levels of indirection from 'Gfx *'. Usually caused by passing a uintptr_t into a function expecting a pointer-types
-		/wd4090 #'initializing': different 'const' qualifiers. Caused when initializing a non const struct member with a const char*.		
-		/wd4101 # unreferenced local variable. Things like stack pads.
-		/wd4133 #incompatible types. Usually caused by passing a c string into a function that takes a pointer.
-		/wd4244 #conversion from [a] to [b]. Used to warn when copying to smaller type without a cast.
+
+        /wd4024 #different types for formal and actual parameter [x]. Usually seen along side 4047.
+        /wd4047 #'uintptr_t' differs in levels of indirection from 'Gfx *'. Usually caused by passing a uintptr_t into a function expecting a pointer-types
+        /wd4090 #'initializing': different 'const' qualifiers. Caused when initializing a non const struct member with a const char*.
+        /wd4101 # unreferenced local variable. Things like stack pads.
+        /wd4133 #incompatible types. Usually caused by passing a c string into a function that takes a pointer.
+        /wd4244 #conversion from [a] to [b]. Used to warn when copying to smaller type without a cast.
         /sdl-;
         /permissive-;
         /MP;
@@ -422,7 +463,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
         )
     else()
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-		set(CPU_OPTION -msse2 -mfpmath=sse)
+        set(CPU_OPTION -msse2 -mfpmath=sse)
         endif()
 
         target_compile_options(${PROJECT_NAME} PRIVATE
@@ -444,7 +485,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
             $<$<COMPILE_LANGUAGE:CXX>:-fpermissive>
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-enum-enum-conversion>
             -pthread
-	    ${CPU_OPTION}
+        ${CPU_OPTION}
         )
 
         target_link_options(${PROJECT_NAME} PRIVATE
@@ -530,28 +571,28 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     link_libraries(Vorbis::vorbisfile)
     find_package(Opus CONFIG REQUIRED)
     link_libraries(Opus::opus)
-	find_package(OpusFile CONFIG REQUIRED)
+    find_package(OpusFile CONFIG REQUIRED)
     link_libraries(OpusFile::opusfile CONFIG REQUIRED)
 
-	set(ADDITIONAL_LIBRARY_DEPENDENCIES
-		"libultraship;"
-		"ZAPDLib;"
-		"glu32;"
-		"SDL2::SDL2;"
-		"SDL2::SDL2main;"
+    set(ADDITIONAL_LIBRARY_DEPENDENCIES
+        "libultraship;"
+        "ZAPDLib;"
+        "glu32;"
+        "SDL2::SDL2;"
+        "SDL2::SDL2main;"
         #"$<$<BOOL:${BUILD_CROWD_CONTROL}>:SDL2_net::SDL2_net-static>"
-		"glfw;"
-		"winmm;"
-		"imm32;"
-		"version;"
-		"setupapi;"
+        "glfw;"
+        "winmm;"
+        "imm32;"
+        "version;"
+        "setupapi;"
         "Ogg::ogg"
         "Opus::opus"
         "Vorbis::vorbis"
         "Vorbis::vorbisenc"
         "Vorbis::vorbisfile"
-		"OpusFile::opusfile"
-	)
+        "OpusFile::opusfile"
+    )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
     find_package(SDL2)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -576,7 +617,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
 else()
     find_package(SDL2)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
-    
+
     find_package(Threads REQUIRED)
     find_package(Ogg REQUIRED)
     find_package(Vorbis REQUIRED)
@@ -584,19 +625,38 @@ else()
     find_package(OpusFile REQUIRED)
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "libultraship;"
-		"ZAPDLib;"
+        "ZAPDLib;"
         "Ogg::ogg"
         "Vorbis::vorbis"
         "Vorbis::vorbisenc"
         "Vorbis::vorbisfile"
         "Opus::opus"
         "Opusfile::Opusfile"
-		SDL2::SDL2
+        SDL2::SDL2
  #       "$<$<BOOL:${BUILD_CROWD_CONTROL}>:SDL2_net::SDL2_net>"
-		${CMAKE_DL_LIBS}
-		Threads::Threads
-	)
+        ${CMAKE_DL_LIBS}
+        Threads::Threads
+    )
 
+endif()
+
+# --- Archipelago (apclientpp + wswrap) link deps ---
+if (BUILD_ARCHIPELAGO AND NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
+    find_package(OpenSSL REQUIRED)
+    find_package(ZLIB REQUIRED)
+
+    list(APPEND ADDITIONAL_LIBRARY_DEPENDENCIES
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        ZLIB::ZLIB
+    )
+
+    if (WIN32)
+        list(APPEND ADDITIONAL_LIBRARY_DEPENDENCIES
+            ws2_32
+            crypt32
+        )
+    endif()
 endif()
 
 if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin|NintendoSwitch|CafeOS")
@@ -649,10 +709,10 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "CafeOS")
 wut_create_rpx(${PROJECT_NAME})
 
 wut_create_wuhb(${PROJECT_NAME}
-	NAME       "Two Ship Two Harkinian"
-	SHORTNAME  "2S2H"
-	AUTHOR     "${PROJECT_TEAM}"
-	ICON       ${CMAKE_CURRENT_SOURCE_DIR}/icon.jpg
+    NAME       "Two Ship Two Harkinian"
+    SHORTNAME  "2S2H"
+    AUTHOR     "${PROJECT_TEAM}"
+    ICON       ${CMAKE_CURRENT_SOURCE_DIR}/icon.jpg
 )
 
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/2s2h.rpx ${CMAKE_CURRENT_BINARY_DIR}/2s2h.wuhb DESTINATION . COMPONENT 2s2h)

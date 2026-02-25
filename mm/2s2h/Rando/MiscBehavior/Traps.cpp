@@ -4,6 +4,7 @@
 #include "Rando/ActorBehavior/ActorBehavior.h"
 #include "2s2h/DeveloperTools/SaveEditor.h"
 #include "2s2h/ShipUtils.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "variables.h"
@@ -310,7 +311,7 @@ void Rando::MiscBehavior::OfferTrapItem() {
 
 void Rando::ActorBehavior::InitTrapsBehavior() {
     // Selectively disable object dependency for actors spawned by traps
-    COND_VB_SHOULD(VB_ENABLE_OBJECT_DEPENDENCY, IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_TRAPS], {
+    COND_VB_SHOULD(VB_ENABLE_OBJECT_DEPENDENCY, (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_TRAPS], {
         ObjectId objectId = (ObjectId)va_arg(args, int);
         if (objectId == OBJECT_RR) { // Like-Like
             *should = false;

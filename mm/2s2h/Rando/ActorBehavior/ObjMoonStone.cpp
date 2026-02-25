@@ -1,5 +1,6 @@
 #include "ActorBehavior.h"
 #include <libultraship/bridge/consolevariablebridge.h>
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "variables.h"
@@ -15,9 +16,17 @@ void ObjMoonstone_DrawCustom(Actor* thisx, PlayState* play) {
 
     RandoItemId randoItemId = randoSaveCheck.randoItemId;
 
+    // For Archipelago saves, if the item data hasn't loaded yet (randoItemId == 0),
+    // use the vanilla Moon's Tear as a placeholder
+    if (IS_ARCHI && randoItemId == RI_UNKNOWN) {
+        randoItemId = RI_MOONS_TEAR;
+    }
+
     // When not in Astral Observatory, allow the item to convert and render with particles
     if (play->sceneId != SCENE_TENMON_DAI) {
-        randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, RC_ASTRAL_OBSERVATORY_MOON_TEAR);
+        randoItemId =
+            Rando::ConvertItem(randoSaveCheck.randoItemId != RI_UNKNOWN ? randoSaveCheck.randoItemId : RI_MOONS_TEAR,
+                               RC_ASTRAL_OBSERVATORY_MOON_TEAR);
         Rando::DrawItem(randoItemId, RC_ASTRAL_OBSERVATORY_MOON_TEAR, thisx);
     } else {
         Rando::DrawItem(randoItemId, RC_ASTRAL_OBSERVATORY_MOON_TEAR, thisx);
@@ -25,20 +34,20 @@ void ObjMoonstone_DrawCustom(Actor* thisx, PlayState* play) {
 }
 
 void Rando::ActorBehavior::InitObjMoonStoneBehavior() {
-    COND_ID_HOOK(OnActorInit, ACTOR_OBJ_MOON_STONE, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_OBJ_MOON_STONE, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         // Only replace the draw if the stone would have been drawn normally
         if (actor->draw != NULL) {
             actor->draw = ObjMoonstone_DrawCustom;
         }
     });
 
-    COND_VB_SHOULD(VB_REVEAL_MOON_STONE_IN_CRATER, IS_RANDO, {
+    COND_VB_SHOULD(VB_REVEAL_MOON_STONE_IN_CRATER, (IS_RANDO || IS_ARCHI), {
         ObjMoonStone* objMoonStone = va_arg(args, ObjMoonStone*);
         objMoonStone->actor.draw = ObjMoonstone_DrawCustom;
         *should = false;
     });
 
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_MOONS_TEAR, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_MOONS_TEAR, (IS_RANDO || IS_ARCHI), {
         ObjMoonStone* objMoonStone = va_arg(args, ObjMoonStone*);
         if (objMoonStone->actor.xzDistToPlayer < 25.0f) {
             *should = false;

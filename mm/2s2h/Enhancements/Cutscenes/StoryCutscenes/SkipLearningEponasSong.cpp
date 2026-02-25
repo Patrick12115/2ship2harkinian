@@ -4,6 +4,7 @@
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "overlays/actors/ovl_En_Ma4/z_en_ma4.h"
@@ -14,7 +15,7 @@ void EnMa4_SetupDialogueHandler(EnMa4* enMa4);
 #define CVAR CVarGetInteger(CVAR_NAME, 0)
 
 void RegisterSkipLearningEponasSong() {
-    COND_VB_SHOULD(VB_QUEUE_CUTSCENE, CVAR || IS_RANDO, {
+    COND_VB_SHOULD(VB_QUEUE_CUTSCENE, CVAR || IS_RANDO || IS_ARCHI, {
         s16* csId = va_arg(args, s16*);
 
         if (gPlayState->sceneId != SCENE_F01) { // Romani Ranch
@@ -59,4 +60,4 @@ void RegisterSkipLearningEponasSong() {
     });
 }
 
-static RegisterShipInitFunc initFunc(RegisterSkipLearningEponasSong, { CVAR_NAME, "IS_RANDO" });
+static RegisterShipInitFunc initFunc(RegisterSkipLearningEponasSong, { CVAR_NAME, "IS_RANDO", "IS_ARCHI" });

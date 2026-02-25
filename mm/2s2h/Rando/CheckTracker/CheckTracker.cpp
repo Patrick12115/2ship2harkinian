@@ -5,6 +5,7 @@
 #include "2s2h/BenGui/UIWidgets.hpp"
 #include "2s2h/Rando/StaticData/StaticData.h"
 #include "2s2h/BenPort.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <cstring>
 
 // Image Icons
@@ -501,7 +502,7 @@ void CheckTrackerWindow::Draw() {
     trackerBG.w = ImGui::IsWindowDocked() ? 1.0f : CVAR_TRACKER_OPACITY;
     ImGui::SetWindowFontScale(trackerScale);
 
-    if (!gPlayState || !IS_RANDO) {
+    if (!gPlayState || !(IS_RANDO || IS_ARCHI)) {
         ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize("No Rando Save Loaded").x) / 2);
         ImGui::SetCursorPosY(ImGui::GetWindowHeight() / 2 - 10.0f);
         ImGui::TextColored(UIWidgets::ColorValues.at(UIWidgets::Colors::Gray), "No Rando Save Loaded");
@@ -745,7 +746,7 @@ static RegisterShipInitFunc initFunc(
     { CVAR_NAME_VISIBILITY_MODE });
 
 void OnFileLoad() {
-    if (!IS_RANDO) {
+    if (!(IS_RANDO || IS_ARCHI)) {
         return;
     }
 

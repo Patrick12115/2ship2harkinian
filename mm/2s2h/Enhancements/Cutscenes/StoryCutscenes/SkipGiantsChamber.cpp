@@ -4,6 +4,7 @@
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "variables.h"
@@ -61,7 +62,7 @@ void handleGiantsCheck(SceneId sceneId) {
      * seem to matter for Giants' Chamber cutscenes. The Clock Tower scene instead checks for Boss Remains that the
      * player has.
      */
-    if (IS_RANDO) {
+    if (IS_RANDO || IS_ARCHI) {
         switch (sceneId) {
             case SCENE_MITURIN_BS:
                 // Mark Woodfall Giant as freed
@@ -97,7 +98,7 @@ void handleGiantsCheck(SceneId sceneId) {
 
     // The Oath to Order check only occurs when freeing a Giant for the first time.
     if (gSaveContext.save.saveInfo.unk_EA8[1] == 1) {
-        if (IS_RANDO) {
+        if (IS_RANDO || IS_ARCHI) {
             RANDO_SAVE_CHECKS[RC_GIANTS_CHAMBER_OATH_TO_ORDER].eligible = true;
         } else {
             GameInteractor::Instance->events.emplace_back(GIEventGiveItem{
@@ -128,7 +129,7 @@ void RegisterSkipGiantsChamber() {
      * a song tutorial prompt. The other cutscenes do not, but it might seem weird to force the skip for only the first
      * one and not others.
      */
-    COND_VB_SHOULD(VB_PLAY_TRANSITION_CS, CVAR || IS_RANDO, {
+    COND_VB_SHOULD(VB_PLAY_TRANSITION_CS, CVAR || IS_RANDO || IS_ARCHI, {
         if (gSaveContext.save.entrance == ENTRANCE(GIANTS_CHAMBER, 0)) {
             /*
              * The warp gate processing silently queues up an event transition with information for the particular
@@ -156,7 +157,7 @@ void RegisterSkipGiantsChamber() {
     });
 
     // Handle Giants' Chamber cutscene skip for non-rando. Rando has its own skip with additional check processing.
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, CVAR && !IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, CVAR && !(IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         if (actor->id == ACTOR_DOOR_WARP1) {
@@ -165,4 +166,4 @@ void RegisterSkipGiantsChamber() {
     });
 }
 
-static RegisterShipInitFunc initFunc(RegisterSkipGiantsChamber, { CVAR_NAME, "IS_RANDO" });
+static RegisterShipInitFunc initFunc(RegisterSkipGiantsChamber, { CVAR_NAME, "IS_RANDO", "IS_ARCHI" });

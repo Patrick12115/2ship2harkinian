@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 
@@ -11,7 +12,7 @@ void EnMinifrog_JumpTimer(EnMinifrog* enMinifrog);
 void EnMinifrog_SpawnDust(EnMinifrog* enMinifrog, PlayState* play);
 }
 
-#define SHUFFLED_FROGS (IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_FROGS])
+#define SHUFFLED_FROGS ((IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_FROGS])
 
 static u16 sIsFrogReturnedFlags[] = {
     0,                  // FROG_YELLOW

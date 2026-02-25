@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipUtils.h"
@@ -24,7 +25,7 @@ void ApplyHookshotHint(u16* textId, bool* loadFromMessageTable) {
 }
 
 void Rando::ActorBehavior::InitEnZowBehavior() {
-    bool shouldRegister = IS_RANDO && RANDO_SAVE_OPTIONS[RO_HINTS_HOOKSHOT];
+    bool shouldRegister = (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_HINTS_HOOKSHOT];
 
     COND_ID_HOOK(OnOpenText, 0x12FD, shouldRegister, ApplyHookshotHint);
     COND_ID_HOOK(OnOpenText, 0x12FA, shouldRegister, ApplyHookshotHint);

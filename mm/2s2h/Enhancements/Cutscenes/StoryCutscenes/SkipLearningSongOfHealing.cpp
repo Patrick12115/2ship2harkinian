@@ -4,6 +4,7 @@
 #include "2s2h/CustomMessage/CustomMessage.h"
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <spdlog/spdlog.h>
 
 extern "C" {
@@ -28,14 +29,14 @@ void Player_StopHorizontalMovement(Player* player);
 void RegisterSkipLearningSongOfHealing() {
     // TODO: Currently forced on for rando, maybe won't be when you shuffle only song locations (need to override
     // learning mechanism)
-    COND_VB_SHOULD(VB_OSN_TEACH_SONG_OF_HEALING, CVAR || IS_RANDO, {
+    COND_VB_SHOULD(VB_OSN_TEACH_SONG_OF_HEALING, CVAR || IS_RANDO || IS_ARCHI, {
         EnOsn* enOsn = va_arg(args, EnOsn*);
         Player* player = GET_PLAYER(gPlayState);
 
         *should = false;
 
         // Transform the player into human form if we're not in rando
-        if (!IS_RANDO) {
+        if (!(IS_RANDO || IS_ARCHI)) {
             s16 objectId = OBJECT_LINK_NUTS;
             gActorOverlayTable[ACTOR_PLAYER].profile->objectId = objectId;
             func_8012F73C(&gPlayState->objectCtx, player->actor.objectSlot, objectId);

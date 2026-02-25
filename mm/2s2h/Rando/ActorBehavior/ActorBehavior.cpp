@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/ObjectExtension/ObjectExtension.h"
 
@@ -133,5 +134,5 @@ void Rando::ActorBehavior::OnFileLoad() {
     Rando::ActorBehavior::InitSoulsBehavior();
     Rando::ActorBehavior::InitTrapsBehavior();
 
-    COND_HOOK(ShouldVanillaBehavior, IS_RANDO, MiscVanillaBehaviorHandler);
+    COND_HOOK(ShouldVanillaBehavior, (IS_RANDO || IS_ARCHI), MiscVanillaBehaviorHandler);
 }

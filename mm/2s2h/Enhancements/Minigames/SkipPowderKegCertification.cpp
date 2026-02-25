@@ -3,6 +3,7 @@
 #include "2s2h/ShipInit.hpp"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "overlays/actors/ovl_En_Go/z_en_go.h"
@@ -28,7 +29,7 @@ void RegisterPowderKegCertification() {
     });
 
     // "Looks like you succeeded..."
-    COND_ID_HOOK(OnOpenText, 0x0C86, CVAR && !IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0x0C86, CVAR && !(IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "Take one on the house, don't tell your parents.";
 

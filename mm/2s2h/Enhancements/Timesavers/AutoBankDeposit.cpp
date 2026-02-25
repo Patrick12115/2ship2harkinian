@@ -1,5 +1,6 @@
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/BenGui/Notification.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
@@ -29,7 +30,7 @@ static void EmitDepositNotification(s16 newBalance) {
 static void GrantBankFirstReward() {
     SET_WEEKEVENTREG(WEEKEVENTREG_RECEIVED_BANK_WALLET_UPGRADE);
 
-    if (IS_RANDO) {
+    if (IS_RANDO || IS_ARCHI) {
         RANDO_SAVE_CHECKS[RC_CLOCK_TOWN_WEST_BANK_ADULTS_WALLET].eligible = true;
     } else {
         u32 walletLevel = CUR_UPG_VALUE(UPG_WALLET);
@@ -57,7 +58,7 @@ static void GrantBankFirstReward() {
 static void GrantBankInterestReward() {
     SET_WEEKEVENTREG(WEEKEVENTREG_59_80);
 
-    if (IS_RANDO) {
+    if (IS_RANDO || IS_ARCHI) {
         RANDO_SAVE_CHECKS[RC_CLOCK_TOWN_WEST_BANK_INTEREST].eligible = true;
     } else {
         GameInteractor::Instance->events.emplace_back(GIEventGiveItem{
@@ -76,7 +77,7 @@ static void GrantBankInterestReward() {
 static void GrantBankFinalReward() {
     SET_WEEKEVENTREG(WEEKEVENTREG_RECEIVED_BANK_HEART_PIECE);
 
-    if (IS_RANDO) {
+    if (IS_RANDO || IS_ARCHI) {
         RANDO_SAVE_CHECKS[RC_CLOCK_TOWN_WEST_BANK_PIECE_OF_HEART].eligible = true;
     } else {
         GameInteractor::Instance->events.emplace_back(GIEventGiveItem{

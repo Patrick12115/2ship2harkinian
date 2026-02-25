@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/ObjectExtension/ActorListIndex.h"
@@ -219,19 +220,19 @@ void ObjKibako2_RandoDraw(Actor* actor, PlayState* play) {
 }
 
 void Rando::ActorBehavior::InitObjKibakoBehavior() {
-    COND_ID_HOOK(OnActorInit, ACTOR_OBJ_KIBAKO, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_OBJ_KIBAKO, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         if (IdentifyCrate(actor) != RC_UNKNOWN) {
             actor->draw = ObjKibako_RandoDraw;
         }
     });
 
-    COND_ID_HOOK(OnActorInit, ACTOR_OBJ_KIBAKO2, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_OBJ_KIBAKO2, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         if (IdentifyCrate(actor) != RC_UNKNOWN) {
             actor->draw = ObjKibako2_RandoDraw;
         }
     });
 
-    COND_VB_SHOULD(VB_CRATE_DRAW_BE_OVERRIDDEN, IS_RANDO, {
+    COND_VB_SHOULD(VB_CRATE_DRAW_BE_OVERRIDDEN, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
         // Identify has already been called at this point, just check if we have a valid RC.
         if (Rando::ActorBehavior::GetObjectRandoCheckId(actor) != RC_UNKNOWN) {
@@ -240,7 +241,7 @@ void Rando::ActorBehavior::InitObjKibakoBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_BARREL_OR_CRATE_DROP_COLLECTIBLE, IS_RANDO, {
+    COND_VB_SHOULD(VB_BARREL_OR_CRATE_DROP_COLLECTIBLE, (IS_RANDO || IS_ARCHI), {
         Actor* actor = va_arg(args, Actor*);
         RandoCheckId randoCheckId = Rando::ActorBehavior::GetObjectRandoCheckId(actor);
 
@@ -271,8 +272,12 @@ void Rando::ActorBehavior::InitObjKibakoBehavior() {
             [](Actor* actor, PlayState* play) {
                 auto& randoSaveCheck = RANDO_SAVE_CHECKS[CUSTOM_ITEM_PARAM];
                 Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-                Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM),
-                                (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
+                RandoItemId randoItemId =
+                    Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM);
+                if (randoItemId == RI_JUNK) {
+                    randoItemId = Rando::CurrentJunkItem((RandoCheckId)CUSTOM_ITEM_PARAM);
+                }
+                Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
             });
     });
 }

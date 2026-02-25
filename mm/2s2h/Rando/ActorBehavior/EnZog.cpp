@@ -1,11 +1,12 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 /*
  * This accounts for any interactions that check for the presence of the Zora Mask, which is synonymous with Mikau's
  * spirit being put to rest. Affected actors are EnZog (Mikau himself), EnSekihi (Mikau's grave), and EnTsn (the
  * fisherman, who has minor dialog about Mikau floating in the bay).
  */
 void Rando::ActorBehavior::InitEnZogBehavior() {
-    COND_VB_SHOULD(VB_CONSIDER_MIKAU_HEALED, IS_RANDO, {
+    COND_VB_SHOULD(VB_CONSIDER_MIKAU_HEALED, (IS_RANDO || IS_ARCHI), {
         int shouldIfMikauIsGone = va_arg(args, int);
         // Check both eligible and obtained flags to account for both cutscene skips and scene reloads
         if (shouldIfMikauIsGone) {

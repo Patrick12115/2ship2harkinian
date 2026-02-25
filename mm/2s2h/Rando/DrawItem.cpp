@@ -463,6 +463,12 @@ void DrawSparkles(RandoItemId randoItemId, Actor* actor) {
 }
 
 void Rando::DrawItem(RandoItemId randoItemId, RandoCheckId randoCheckId, Actor* actor) {
+    // Validate item ID
+    if (randoItemId < 0 || randoItemId >= RI_MAX) {
+        SPDLOG_ERROR("[DrawItem] Invalid randoItemId: {} (must be 0-{})", (int)randoItemId, RI_MAX - 1);
+        return;
+    }
+
     // Apply hilites with actor world pos before drawing
     if (actor != NULL) {
         func_800B8118(actor, gPlayState, 0);
@@ -545,9 +551,14 @@ void Rando::DrawItem(RandoItemId randoItemId, RandoCheckId randoCheckId, Actor* 
         case RI_PROGRESSIVE_BOW:
         case RI_PROGRESSIVE_BOMB_BAG:
         case RI_PROGRESSIVE_SWORD:
-        case RI_PROGRESSIVE_WALLET:
-            Rando::DrawItem(Rando::ConvertItem(randoItemId, randoCheckId), randoCheckId, actor);
+        case RI_PROGRESSIVE_WALLET: {
+            RandoItemId convertedItemId = Rando::ConvertItem(randoItemId, randoCheckId);
+            if (convertedItemId == RI_JUNK) {
+                convertedItemId = Rando::CurrentJunkItem(randoCheckId);
+            }
+            Rando::DrawItem(convertedItemId, randoCheckId, actor);
             break;
+        }
         case RI_SOUL_ENEMY_ALIEN:
         case RI_SOUL_ENEMY_ARMOS:
         case RI_SOUL_ENEMY_BAD_BAT:
@@ -642,7 +653,10 @@ void Rando::DrawItem(RandoItemId randoItemId, RandoCheckId randoCheckId, Actor* 
         case RI_UNKNOWN:
             break;
         default:
-            GetItem_Draw(gPlayState, Rando::StaticData::Items[randoItemId].drawId);
+            // Bounds check to prevent crashes from invalid item IDs
+            if (randoItemId >= 0 && randoItemId < RI_MAX) {
+                GetItem_Draw(gPlayState, Rando::StaticData::Items[randoItemId].drawId);
+            }
             break;
     }
 

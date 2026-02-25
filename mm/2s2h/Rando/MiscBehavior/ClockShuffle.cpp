@@ -4,6 +4,7 @@
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
 #include "2s2h/ShipUtils.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "z64game.h"
@@ -588,7 +589,7 @@ void RedirectToNextOwnedHalfDay() {
 }
 
 void OnFileLoad() {
-    bool shouldRegister = IS_RANDO && RANDO_SAVE_OPTIONS[RO_CLOCK_SHUFFLE];
+    bool shouldRegister = (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_CLOCK_SHUFFLE];
 
     // Correct Day 0 time on file load BEFORE scene initialization
     // OnSaveLoad fires before Play_Init, ensuring time is correct before Environment_PlaySceneSequence processes audio

@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -8,7 +9,7 @@ s32 Player_SetupWaitForPutAway(PlayState* play, Player* player, AfterPutAwayFunc
 }
 
 void Rando::ActorBehavior::InitEnBjtBehavior() {
-    COND_VB_SHOULD(VB_EXEC_MSG_EVENT, IS_RANDO, {
+    COND_VB_SHOULD(VB_EXEC_MSG_EVENT, (IS_RANDO || IS_ARCHI), {
         u32 cmdId = va_arg(args, u32);
         Actor* actor = va_arg(args, Actor*);
         if (actor->id == ACTOR_EN_BJT) { // ??? (Stock Pot Inn)

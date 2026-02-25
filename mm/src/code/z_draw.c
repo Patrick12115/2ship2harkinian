@@ -91,6 +91,7 @@
 #include "assets/objects/object_st/object_st.h"
 
 #include "2s2h/BenPort.h"
+#include "2s2h_assets.h"
 
 void GetItem_DrawBombchu(PlayState* play, s16 drawId);
 void GetItem_DrawPoes(PlayState* play, s16 drawId);
@@ -98,6 +99,7 @@ void GetItem_DrawFairyBottle(PlayState* play, s16 drawId);
 void GetItem_DrawSkullToken(PlayState* play, s16 drawId);
 void GetItem_DrawCompass(PlayState* play, s16 drawId);
 void GetItem_DrawPotion(PlayState* play, s16 drawId);
+void GetItem_DrawArchipelago(PlayState* play, s16 drawId);
 void GetItem_DrawGoronSword(PlayState* play, s16 drawId);
 void GetItem_DrawDekuNuts(PlayState* play, s16 drawId);
 void GetItem_DrawRecoveryHeart(PlayState* play, s16 drawId);
@@ -373,6 +375,12 @@ static DrawItemTableEntry sDrawItemTable[] = {
     { GetItem_DrawOpa0Xlu1, { gGiPictoBoxFrameDL, gGiPictoBoxBodyAndLensDL } },
     // GID_MASK_FIERCE_DEITY, OBJECT_GI_MASK03
     { GetItem_DrawOpa01, { gGiFierceDeityMaskFaceDL, gGiFierceDeityMaskHairAndHatDL } },
+    // GID_ARCHIPELAGO_PROGRESSIVE, OBJECT_ARCHIPELAGO_ITEM
+    { GetItem_DrawArchipelago, { gArchipelagoProgressiveDL } },
+    // GID_ARCHIPELAGO_USEFUL, OBJECT_ARCHIPELAGO_ITEM
+    { GetItem_DrawArchipelago, { gArchipelagoItemDL } },
+    // GID_ARCHIPELAGO_JUNK, OBJECT_ARCHIPELAGO_ITEM
+    { GetItem_DrawArchipelago, { gArchipelagoJunkDL } },
 };
 
 /**
@@ -595,6 +603,24 @@ void GetItem_DrawOpa0(PlayState* play, s16 drawId) {
     OPEN_DISPS(play->state.gfxCtx);
 
     Gfx_SetupDL25_Opa(play->state.gfxCtx);
+
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
+    gSPDisplayList(POLY_OPA_DISP++, sDrawItemTable[drawId].drawResources[0]);
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+/**
+ * Draw Archipelago items with scaling
+ */
+void GetItem_DrawArchipelago(PlayState* play, s16 drawId) {
+    s32 pad;
+
+    OPEN_DISPS(play->state.gfxCtx);
+
+    Gfx_SetupDL25_Opa(play->state.gfxCtx);
+
+    Matrix_Scale(0.04f, 0.04f, 0.04f, MTXMODE_APPLY);
 
     MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
     gSPDisplayList(POLY_OPA_DISP++, sDrawItemTable[drawId].drawResources[0]);

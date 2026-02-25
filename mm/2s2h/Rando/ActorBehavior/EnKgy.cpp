@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h/CustomMessage/CustomMessage.h"
 #include "2s2h/ShipUtils.h"
 
@@ -8,7 +9,7 @@ extern "C" {
 }
 
 void Rando::ActorBehavior::InitEnKgyBehavior() {
-    COND_VB_SHOULD(VB_SMITHY_START_UPGRADING_SWORD, IS_RANDO, {
+    COND_VB_SHOULD(VB_SMITHY_START_UPGRADING_SWORD, (IS_RANDO || IS_ARCHI), {
         EnKgy* refActor = va_arg(args, EnKgy*);
         RandoSaveCheck& randoGildedSwordSaveCheck = RANDO_SAVE_CHECKS[RC_MOUNTAIN_VILLAGE_SMITHY_GILDED_SWORD];
         RandoSaveCheck& randoRazorSwordSaveCheck = RANDO_SAVE_CHECKS[RC_MOUNTAIN_VILLAGE_SMITHY_RAZOR_SWORD];
@@ -29,20 +30,20 @@ void Rando::ActorBehavior::InitEnKgyBehavior() {
     });
 
     // Allow player to get checks without a sword
-    COND_VB_SHOULD(VB_SMITHY_CHECK_FOR_SWORD, IS_RANDO, { *should = false; });
+    COND_VB_SHOULD(VB_SMITHY_CHECK_FOR_SWORD, (IS_RANDO || IS_ARCHI), { *should = false; });
 
-    COND_VB_SHOULD(VB_SMITHY_CHECK_FOR_RAZOR_SWORD, IS_RANDO, {
+    COND_VB_SHOULD(VB_SMITHY_CHECK_FOR_RAZOR_SWORD, (IS_RANDO || IS_ARCHI), {
         RandoSaveCheck& randoRazorSwordSaveCheck = RANDO_SAVE_CHECKS[RC_MOUNTAIN_VILLAGE_SMITHY_RAZOR_SWORD];
         *should = randoRazorSwordSaveCheck.cycleObtained;
     });
 
-    COND_VB_SHOULD(VB_SMITHY_CHECK_FOR_GILDED_SWORD, IS_RANDO, {
+    COND_VB_SHOULD(VB_SMITHY_CHECK_FOR_GILDED_SWORD, (IS_RANDO || IS_ARCHI), {
         RandoSaveCheck& randoGildedSwordSaveCheck = RANDO_SAVE_CHECKS[RC_MOUNTAIN_VILLAGE_SMITHY_GILDED_SWORD];
         *should = randoGildedSwordSaveCheck.cycleObtained;
     });
 
     // "If you want your sword sharpened..." (Razor Sword upgrade)
-    COND_ID_HOOK(OnOpenText, 0xc3b, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0xc3b, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
 
         RandoSaveCheck& randoRazorSwordSaveCheck = RANDO_SAVE_CHECKS[RC_MOUNTAIN_VILLAGE_SMITHY_RAZOR_SWORD];
@@ -59,7 +60,7 @@ void Rando::ActorBehavior::InitEnKgyBehavior() {
     });
 
     // "With gold dust I can forge the strongest of swords"
-    COND_ID_HOOK(OnOpenText, 0xc3d, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0xc3d, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         std::string itemName = "40 Rupees";
 
@@ -76,7 +77,7 @@ void Rando::ActorBehavior::InitEnKgyBehavior() {
     });
 
     // "Reforge your sword?"
-    COND_ID_HOOK(OnOpenText, 0xc3e, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0xc3e, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "Back for more?\n\xC2%gYes\nNo";
 
@@ -85,7 +86,7 @@ void Rando::ActorBehavior::InitEnKgyBehavior() {
     });
 
     // "Come back tomorrow morning"
-    COND_ID_HOOK(OnOpenText, 0xc42, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0xc42, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "Thanks for your business.\x19";
 
@@ -94,7 +95,7 @@ void Rando::ActorBehavior::InitEnKgyBehavior() {
     });
 
     // "Your sword has already been reforged! Unless..."
-    COND_ID_HOOK(OnOpenText, 0xc45, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0xc45, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "Did you bring the %rgold dust%w?\x19";
 
@@ -103,7 +104,7 @@ void Rando::ActorBehavior::InitEnKgyBehavior() {
     });
 
     // "We can use it to reforge your sword"
-    COND_ID_HOOK(OnOpenText, 0xc46, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0xc46, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "That's it, alright. I'll just take that off your hands and give you this. Don't tell anyone!\x19";
 
@@ -112,7 +113,7 @@ void Rando::ActorBehavior::InitEnKgyBehavior() {
     });
 
     // "Gold dust is the prize for winning the Goron race in spring?"
-    COND_ID_HOOK(OnOpenText, 0xc49, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0xc49, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "Huh? You say that gold dust can be found at %r{location}%w?\x19";
         RandoCheckId randoCheckId = Rando::FindItemPlacement(RI_BOTTLE_GOLD_DUST);
@@ -124,7 +125,7 @@ void Rando::ActorBehavior::InitEnKgyBehavior() {
     });
 
     // "Gold dust happens to be first prize at the racetrack"
-    COND_ID_HOOK(OnOpenText, 0xc4b, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0xc4b, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "Gold dust can be found at %p{location}%w.\x10";
         entry.msg += "Bring me that, and my %r{itemName}%w is all yours.\xE0";
@@ -140,7 +141,7 @@ void Rando::ActorBehavior::InitEnKgyBehavior() {
     });
 
     // "Your sword is already as strong as I can make it!"
-    COND_ID_HOOK(OnOpenText, 0xc4c, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
+    COND_ID_HOOK(OnOpenText, 0xc4c, (IS_RANDO || IS_ARCHI), [](u16* textId, bool* loadFromMessageTable) {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "Hey, what is this? I'm not made of Randomizer Checks!\x19";
 

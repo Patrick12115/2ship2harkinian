@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomItem/CustomItem.h"
 
@@ -96,10 +97,12 @@ void SpawnDropItem(Vec3f position, RandoCheckId randoCheckId) {
         },
         [](Actor* actor, PlayState* play) {
             auto& randoSaveCheck = RANDO_SAVE_CHECKS[CUSTOM_ITEM_PARAM];
-            RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId);
             Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-            Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM),
-                            (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
+            RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM);
+            if (randoItemId == RI_JUNK) {
+                randoItemId = Rando::CurrentJunkItem((RandoCheckId)CUSTOM_ITEM_PARAM);
+            }
+            Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
         });
 }
 
@@ -149,7 +152,7 @@ bool SpawnNormalEnemyDrop(Vec3f position, u32 params) {
 }
 
 void Rando::ActorBehavior::InitEnemyDropBehavior() {
-    bool shouldRegister = IS_RANDO && RANDO_SAVE_OPTIONS[RO_SHUFFLE_ENEMY_DROPS];
+    bool shouldRegister = (IS_RANDO || IS_ARCHI) && RANDO_SAVE_OPTIONS[RO_SHUFFLE_ENEMY_DROPS];
 
     COND_VB_SHOULD(VB_DROP_COLLECTIBLE, shouldRegister, {
         Vec3f position = va_arg(args, Vec3f);

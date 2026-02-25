@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
@@ -9,7 +10,7 @@ void Player_StartTalking(PlayState* play, Actor* actor);
 }
 
 void Rando::ActorBehavior::InitEnGKBehavior() {
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_OFFER, (IS_RANDO || IS_ARCHI), {
         GetItemId* item = va_arg(args, GetItemId*);
         Actor* actor = va_arg(args, Actor*);
         Player* player = GET_PLAYER(gPlayState);
@@ -30,12 +31,12 @@ void Rando::ActorBehavior::InitEnGKBehavior() {
         }
     });
 
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_GK_LULLABY, IS_RANDO, {
+    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_GK_LULLABY, (IS_RANDO || IS_ARCHI), {
         // Override vanilla cutscene skip item grant behavior to use rando queue instead
         *should = false;
     });
 
-    COND_VB_SHOULD(VB_START_CUTSCENE, IS_RANDO, {
+    COND_VB_SHOULD(VB_START_CUTSCENE, (IS_RANDO || IS_ARCHI), {
         s16* csId = va_arg(args, s16*);
         Actor* actor = va_arg(args, Actor*);
 
@@ -52,7 +53,7 @@ void Rando::ActorBehavior::InitEnGKBehavior() {
     });
 
     // Played Full Lullaby for Baby Goron
-    COND_HOOK(OnSceneFlagSet, IS_RANDO, [](s16 sceneId, FlagType flagType, u32 flag) {
+    COND_HOOK(OnSceneFlagSet, (IS_RANDO || IS_ARCHI), [](s16 sceneId, FlagType flagType, u32 flag) {
         if (sceneId == SCENE_16GORON_HOUSE && flagType == FLAG_CYCL_SCENE_SWITCH && flag == 20) {
             SET_WEEKEVENTREG(WEEKEVENTREG_24_80); // Ensure Goron Elder check is available
         }

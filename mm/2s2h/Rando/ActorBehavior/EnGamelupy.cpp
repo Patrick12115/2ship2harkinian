@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "CustomItem/CustomItem.h"
 
@@ -67,12 +68,15 @@ void Gamelupy_RandoDrawFunc(Actor* actor, PlayState* play) {
     auto randoSaveCheck = RANDO_SAVE_CHECKS[(RandoCheckId)actor->home.rot.x];
 
     Matrix_Scale(20.0f, 20.0f, 20.0f, MTXMODE_APPLY);
-    Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)actor->home.rot.x),
-                    (RandoCheckId)actor->home.rot.x, actor);
+    RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)actor->home.rot.x);
+    if (randoItemId == RI_JUNK) {
+        randoItemId = Rando::CurrentJunkItem((RandoCheckId)actor->home.rot.x);
+    }
+    Rando::DrawItem(randoItemId, (RandoCheckId)actor->home.rot.x, actor);
 }
 
 void Rando::ActorBehavior::InitEnGamelupyBehavior() {
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_GAMELUPY, IS_RANDO, [](Actor* actor) {
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_GAMELUPY, (IS_RANDO || IS_ARCHI), [](Actor* actor) {
         if (gPlayState->sceneId != SCENE_DEKUTES) {
             return;
         }
@@ -91,7 +95,7 @@ void Rando::ActorBehavior::InitEnGamelupyBehavior() {
         actor->draw = Gamelupy_RandoDrawFunc;
     });
 
-    COND_VB_SHOULD(VB_COLLECT_PLAYGROUND_RUPEE, IS_RANDO, {
+    COND_VB_SHOULD(VB_COLLECT_PLAYGROUND_RUPEE, (IS_RANDO || IS_ARCHI), {
         if (!*should) {
             return;
         }

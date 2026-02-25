@@ -4,6 +4,7 @@
 #include "2s2h/CustomItem/CustomItem.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h/ShipInit.hpp"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 #include "variables.h"
@@ -19,7 +20,7 @@ void RegisterSkipLearningSonataOfAwakening() {
      * Message_DrawMain. The player actually "learns" the song upon hitting the final correct note in
      * the tutorial prompt.
      */
-    COND_VB_SHOULD(VB_START_CUTSCENE, CVAR || IS_RANDO, {
+    COND_VB_SHOULD(VB_START_CUTSCENE, CVAR || IS_RANDO || IS_ARCHI, {
         s16* csId = va_arg(args, s16*);
         // Cutscenes 11 and 12 in the Deku Palace King's chamber play when Link pulls out Deku Pipes for the monkey.
         if (gPlayState->sceneId == SCENE_DEKU_KING) {
@@ -58,4 +59,4 @@ void RegisterSkipLearningSonataOfAwakening() {
     });
 }
 
-static RegisterShipInitFunc initFunc(RegisterSkipLearningSonataOfAwakening, { CVAR_NAME, "IS_RANDO" });
+static RegisterShipInitFunc initFunc(RegisterSkipLearningSonataOfAwakening, { CVAR_NAME, "IS_RANDO", "IS_ARCHI" });
