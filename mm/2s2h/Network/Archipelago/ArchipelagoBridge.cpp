@@ -87,8 +87,7 @@ RandoCheckId GetRandoCheckFromLocationId(uint64_t apLocationId) {
     return RC_UNKNOWN;
 }
 
-RandoItemId GetRandoItemIdFromAPItemId(uint64_t apItemId, const std::string& itemName,
-                                                          uint32_t flags) {
+RandoItemId GetRandoItemIdFromAPItemId(uint64_t apItemId, const std::string& itemName, uint32_t flags) {
     // Mode 1: AP item ID is already a RandoItemId
     if (CVarGetInteger("gArchipelago.ItemIdIsRandoItemId", 0)) {
         return static_cast<RandoItemId>(apItemId);

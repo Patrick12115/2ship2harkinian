@@ -6,6 +6,7 @@ from BaseClasses import MultiWorld, Region
 
 from .Enums import Regions, Locations
 from .Locations import MM2ShipLocation, location_table
+from .LocationData import LOCATION_RCTYPE
 
 if TYPE_CHECKING:
     from . import MM2ShipWorld
@@ -20,6 +21,64 @@ class MM2ShipRegion(Region):
 
     def __init__(self, name: str, player: int, multiworld: MultiWorld, hint: str | None = None):
         super().__init__(name, player, multiworld, hint)
+
+
+# Maps C++ RandoCheckType → the MM2ShipOptions attribute that enables it.
+# Types absent from this dict are always active (RCTYPE_CHEST, RCTYPE_NPC,
+# RCTYPE_SONG, RCTYPE_STRAY_FAIRY, RCTYPE_HEART, RCTYPE_MINIGAME, etc.).
+_RCTYPE_OPTION: dict[str, str] = {
+    "RCTYPE_BARREL":      "shuffle_barrel_drops",
+    "RCTYPE_COW":         "shuffle_cows",
+    "RCTYPE_CRATE":       "shuffle_crate_drops",
+    "RCTYPE_ENEMY_DROP":  "shuffle_enemy_drops",
+    "RCTYPE_FREESTANDING":"shuffle_freestanding_items",
+    "RCTYPE_FROG":        "shuffle_frogs",
+    "RCTYPE_GRASS":       "shuffle_grass_drops",
+    "RCTYPE_OWL":         "shuffle_owl_statues",
+    "RCTYPE_POT":         "shuffle_pot_drops",
+    "RCTYPE_REMAINS":     "shuffle_boss_remains",
+    "RCTYPE_SHOP":        "shuffle_shops",
+    "RCTYPE_SKULL_TOKEN": "shuffle_gold_skulltulas",
+    "RCTYPE_SNOWBALL":    "shuffle_snowball_drops",
+    "RCTYPE_TINGLE_SHOP": "shuffle_tingle_shops",
+    "RCTYPE_TREE":        "shuffle_tree_drops",
+}
+
+
+def location_should_be_included(world: "MM2ShipWorld", loc: Locations) -> bool:
+    """
+    Return True if this location belongs in the item pool given the current world options.
+
+    Filtering is type-based: each location's C++ RandoCheckType (stored in
+    LocationData.LOCATION_RCTYPE) is mapped to the option that controls it.
+    This avoids fragile name-pattern matching and stays in sync with C++.
+
+    Called from both generate_early (to filter location_name_to_id) and
+    create_regions_and_locations (to filter Location objects).  Both must stay
+    in sync — always go through this function rather than duplicating the logic.
+    """
+    name = loc.name  # UPPER_SNAKE_CASE enum key
+
+    rctype = LOCATION_RCTYPE.get(name)
+
+    # Look up which option controls this RCTYPE (None → always active)
+    option_name = _RCTYPE_OPTION.get(rctype) if rctype else None
+    if option_name is not None:
+        option = getattr(world.options, option_name, None)
+        if option is not None and not option.value:
+            return False
+
+    # Sub-exclusions for grass (only reached when shuffle_grass_drops is ON)
+    if rctype == "RCTYPE_GRASS":
+        if world.options.exclude_termina_field_grass.value and name.startswith("TERMINA_FIELD_GRASS_"):
+            return False
+        if world.options.exclude_cow_grotto_grass.value and (
+            "TERMINA_FIELD_COW_GROTTO_GRASS_" in name
+            or "GREAT_BAY_COAST_COW_GROTTO_GRASS_" in name
+        ):
+            return False
+
+    return True
 
 
 def create_regions_and_locations(world: "MM2ShipWorld") -> None:
@@ -43,53 +102,17 @@ def create_regions_and_locations(world: "MM2ShipWorld") -> None:
 
     hub = world.get_region("Clock Town South")
 
-    # Define locations to exclude based on shuffle options
-    frog_locations = {
-       # Locations.MOUNTAIN_VILLAGE_FROG_CHOIR,
-        Locations.CLOCK_TOWN_LAUNDRY_FROG,
-        Locations.GREAT_BAY_TEMPLE_GEKKO_FROG,
-        Locations.SOUTHERN_SWAMP_FROG,
-        Locations.WOODFALL_TEMPLE_GEKKO_FROG,
-    }
-
-    # Define Termina Field grass locations (excludes grotto grass)
-    termina_field_grass_locations = {
-        Locations[f"TERMINA_FIELD_GRASS_{i:02d}"]
-        for i in range(1, 217)
-    }
-
-    # Define cow grotto grass locations
-    # 72 Termina Field Cow Grotto grass + 72 Great Bay Cow Grotto grass = 144 total
-    cow_grotto_grass_locations = {
-        Locations[f"TERMINA_FIELD_COW_GROTTO_GRASS_{i:02d}"]
-        for i in range(1, 73)
-    } | {
-        Locations[f"GREAT_BAY_COAST_COW_GROTTO_GRASS_{i:02d}"]
-        for i in range(1, 73)
-    }
-
-    # Create locations and attach to hub, filtering based on options
+    # Create locations and attach to hub, filtering based on options.
+    # Inactive locations are skipped entirely — no AP item is placed there and they
+    # won't appear in the spoiler log.  The C++ resync loop applies the same filter
+    # so it never sends a location ID the server doesn't know about.
+    # NOTE: Map/compass locations are always created even when
+    # starting_maps_and_compasses is ON — items are removed from the pool,
+    # not the locations.
     from .Locations import location_data_table
     for loc in Locations:
-        # Skip frog locations if shuffle_frogs is OFF
-        # (Frogs behave as vanilla when not shuffled)
-        if not world.options.shuffle_frogs.value and loc in frog_locations:
+        if not location_should_be_included(world, loc):
             continue
-
-        # Skip Termina Field grass if option is ON and grass is shuffled
-        if (world.options.exclude_termina_field_grass.value and
-            world.options.shuffle_grass_drops.value and
-            loc in termina_field_grass_locations):
-            continue
-
-        # Skip cow grotto grass if option is ON and grass is shuffled
-        if (world.options.exclude_cow_grotto_grass.value and
-            world.options.shuffle_grass_drops.value and
-            loc in cow_grotto_grass_locations):
-            continue
-
-        # NOTE: Map/compass LOCATIONS are always created, even when starting_maps_and_compasses is ON
-        # When starting with maps/compasses, the items are removed from the pool, not the locations
 
         loc_name = loc.value
         address = location_data_table[loc]

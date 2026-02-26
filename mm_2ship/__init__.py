@@ -78,62 +78,18 @@ class MM2ShipWorld(World):
         self.shop_prices: dict[str, int] = {}
 
     def generate_early(self) -> None:
-        # Build filtered location table based on options BEFORE anything else
+        # Build filtered location table — inactive locations are removed from the world
+        # entirely so the spoiler log is clean and AP never places items there.
+        # The C++ resync loop applies the same option-based filter before sending
+        # LocationChecks, so the server will never receive an ID it doesn't know about.
         from .Locations import location_data_table
-        from .Enums import Locations as LocationsEnum
+        from .Regions import location_should_be_included
 
-        # Define frog locations
-        frog_locations = {
-            LocationsEnum.MOUNTAIN_VILLAGE_FROG_CHOIR,
-            LocationsEnum.CLOCK_TOWN_LAUNDRY_FROG,
-            LocationsEnum.GREAT_BAY_TEMPLE_GEKKO_FROG,
-            LocationsEnum.SOUTHERN_SWAMP_FROG,
-            LocationsEnum.WOODFALL_TEMPLE_GEKKO_FROG,
+        filtered_location_table = {
+            loc.value: addr
+            for loc, addr in location_data_table.items()
+            if addr is not None and location_should_be_included(self, loc)
         }
-
-        # Define Termina Field grass locations (excludes grotto grass)
-        # These are TERMINA_FIELD_GRASS_01 through TERMINA_FIELD_GRASS_216
-        termina_field_grass_locations = {
-            LocationsEnum[f"TERMINA_FIELD_GRASS_{i:02d}"]
-            for i in range(1, 217)
-        }
-
-        # Define cow grotto grass locations
-        # 72 Termina Field Cow Grotto grass + 72 Great Bay Cow Grotto grass = 144 total
-        cow_grotto_grass_locations = {
-            LocationsEnum[f"TERMINA_FIELD_COW_GROTTO_GRASS_{i:02d}"]
-            for i in range(1, 73)
-        } | {
-            LocationsEnum[f"GREAT_BAY_COAST_COW_GROTTO_GRASS_{i:02d}"]
-            for i in range(1, 73)
-        }
-
-        # Build filtered location name to ID table
-        filtered_location_table = {}
-        for loc, addr in location_data_table.items():
-            # Skip event locations (address=None)
-            if addr is None:
-                continue
-
-            # Skip frog locations if shuffle_frogs is OFF
-            if not self.options.shuffle_frogs.value and loc in frog_locations:
-                continue
-
-            # Skip Termina Field grass if option is ON and grass is shuffled
-            if (self.options.exclude_termina_field_grass.value and
-                self.options.shuffle_grass_drops.value and
-                loc in termina_field_grass_locations):
-                continue
-
-            # Skip cow grotto grass if option is ON and grass is shuffled
-            if (self.options.exclude_cow_grotto_grass.value and
-                self.options.shuffle_grass_drops.value and
-                loc in cow_grotto_grass_locations):
-                continue
-
-            filtered_location_table[loc.value] = addr
-
-        # Override the class location table with our filtered version
         self.__class__.location_name_to_id = filtered_location_table
 
         # Generate random prices for shop and tingle shop locations

@@ -249,48 +249,72 @@ static void InstallHandlers() {
             ArchipelagoBridge::CacheCheckedLocations(serverCheckedLocations);
         }
 
-        // Request location scouting info
-
-        // Build list of all locations we want to scout
-        // Skip locations that are filtered out based on shuffle options
-        std::list<int64_t> locationsToScout;
-
-        // Get shuffle options from slot_data
-        bool shuffleFrogs = data.value("shuffle_frogs", 0) != 0;
-        bool excludeTerminaFieldGrass = data.value("exclude_termina_field_grass", 0) != 0;
+        // Read all shuffle options from slot_data once.
+        bool shuffleBarrels     = data.value("shuffle_barrel_drops",    0) != 0;
+        bool shuffleBossRemains = data.value("shuffle_boss_remains",    0) != 0;
+        bool shuffleCows        = data.value("shuffle_cows",            0) != 0;
+        bool shuffleCrates      = data.value("shuffle_crate_drops",     0) != 0;
+        bool shuffleEnemyDrops  = data.value("shuffle_enemy_drops",     0) != 0;
+        bool shuffleFreestanding= data.value("shuffle_freestanding_items", 0) != 0;
+        bool shuffleFrogs       = data.value("shuffle_frogs",           0) != 0;
+        bool shuffleSkulltulas  = data.value("shuffle_gold_skulltulas", 0) != 0;
+        bool shuffleGrass       = data.value("shuffle_grass_drops",     0) != 0;
+        bool shuffleOwls        = data.value("shuffle_owl_statues",     0) != 0;
+        bool shufflePots        = data.value("shuffle_pot_drops",       0) != 0;
+        bool shuffleShops       = data.value("shuffle_shops",           0) != 0;
+        bool shuffleSnowballs   = data.value("shuffle_snowball_drops",  0) != 0;
+        bool shuffleTingleShops = data.value("shuffle_tingle_shops",    0) != 0;
+        bool shuffleTrees       = data.value("shuffle_tree_drops",      0) != 0;
+        bool excludeTerminaGrass= data.value("exclude_termina_field_grass", 0) != 0;
         bool excludeCowGrottoGrass = data.value("exclude_cow_grotto_grass", 0) != 0;
-        bool shuffleGrassDrops = data.value("shuffle_grass_drops", 0) != 0;
 
+        // Returns true if this check belongs in the current AP world (i.e. its
+        // shuffle option is enabled).  Used for both scouting and resync so the two
+        // lists are always in sync with the Python world's location_should_be_included.
+        auto isCheckActive = [&](RandoCheckId checkId) -> bool {
+            auto& check = Rando::StaticData::Checks[checkId];
+            switch (check.randoCheckType) {
+                case RCTYPE_BARREL:      return shuffleBarrels;
+                case RCTYPE_COW:         return shuffleCows;
+                case RCTYPE_CRATE:       return shuffleCrates;
+                case RCTYPE_ENEMY_DROP:  return shuffleEnemyDrops;
+                case RCTYPE_FREESTANDING:return shuffleFreestanding;
+                case RCTYPE_FROG:        return shuffleFrogs;
+                case RCTYPE_GRASS: {
+                    if (!shuffleGrass) return false;
+                    if (excludeTerminaGrass &&
+                        checkId >= RC_TERMINA_FIELD_GRASS_01 &&
+                        checkId <= RC_TERMINA_FIELD_GRASS_216)
+                        return false;
+                    if (excludeCowGrottoGrass &&
+                        ((checkId >= RC_TERMINA_FIELD_COW_GROTTO_GRASS_01 &&
+                          checkId <= RC_TERMINA_FIELD_COW_GROTTO_GRASS_72) ||
+                         (checkId >= RC_GREAT_BAY_COAST_COW_GROTTO_GRASS_01 &&
+                          checkId <= RC_GREAT_BAY_COAST_COW_GROTTO_GRASS_72)))
+                        return false;
+                    return true;
+                }
+                case RCTYPE_OWL:         return shuffleOwls;
+                case RCTYPE_POT:         return shufflePots;
+                case RCTYPE_REMAINS:     return shuffleBossRemains;
+                case RCTYPE_SHOP:        return shuffleShops;
+                case RCTYPE_SKULL_TOKEN: return shuffleSkulltulas;
+                case RCTYPE_SNOWBALL:    return shuffleSnowballs;
+                case RCTYPE_TINGLE_SHOP: return shuffleTingleShops;
+                case RCTYPE_TREE:        return shuffleTrees;
+                // Always-active types (chest, NPC, song, stray fairy, heart, minigame)
+                default: return true;
+            }
+        };
+
+        // Build list of locations to scout (only active ones).
+        // NOTE: Map/compass locations are always scouted even when
+        // starting_maps_and_compasses is ON — items are given at start but
+        // chest locations still contain randomized items.
+        std::list<int64_t> locationsToScout;
         for (int rc = RC_UNKNOWN + 1; rc < RC_MAX; rc++) {
             RandoCheckId checkId = static_cast<RandoCheckId>(rc);
-            auto& check = Rando::StaticData::Checks[checkId];
-
-            // Skip frog locations if shuffle_frogs is OFF
-            // (When not shuffled, frogs behave as vanilla)
-            if (!shuffleFrogs && check.randoCheckType == RCTYPE_FROG) {
-                continue;
-            }
-
-            // Skip Termina Field grass if excluded
-            // Termina Field grass checks are RC_TERMINA_FIELD_GRASS_01 through RC_TERMINA_FIELD_GRASS_216
-            if (excludeTerminaFieldGrass && shuffleGrassDrops && checkId >= RC_TERMINA_FIELD_GRASS_01 &&
-                checkId <= RC_TERMINA_FIELD_GRASS_216) {
-                continue;
-            }
-
-            // Skip cow grotto grass if excluded
-            // 72 Termina Field Cow Grotto grass + 72 Great Bay Cow Grotto grass = 144 total
-            if (excludeCowGrottoGrass && shuffleGrassDrops &&
-                ((checkId >= RC_TERMINA_FIELD_COW_GROTTO_GRASS_01 && checkId <= RC_TERMINA_FIELD_COW_GROTTO_GRASS_72) ||
-                 (checkId >= RC_GREAT_BAY_COAST_COW_GROTTO_GRASS_01 &&
-                  checkId <= RC_GREAT_BAY_COAST_COW_GROTTO_GRASS_72))) {
-                continue;
-            }
-
-            // NOTE: Map/compass LOCATIONS are always scouted, even when starting_maps_and_compasses is ON
-            // When starting with maps/compasses, the items are given at start, but the chest locations
-            // still exist and contain other randomized items
-
+            if (!isCheckActive(checkId)) continue;
             uint64_t apLocId = ArchipelagoBridge::GetLocationIdFromRandoCheck(checkId);
             if (apLocId != 0) {
                 locationsToScout.push_back(static_cast<int64_t>(apLocId));
@@ -301,20 +325,19 @@ static void InstallHandlers() {
         // The response comes back via set_location_info_handler
         sClient->LocationScouts(locationsToScout);
 
-        // Resync any location checks that were marked while disconnected
-        // This handles the case where the player collected items while offline
+        // Resync any location checks that were marked while disconnected.
+        // Apply the same isCheckActive filter so we never send a location ID
+        // the server doesn't know about (which would crash with "No location X").
         if (gSaveContext.save.shipSaveInfo.saveType == SAVETYPE_ARCHI) {
             std::list<int64_t> locationsToResync;
-
             for (int rc = RC_UNKNOWN + 1; rc < RC_MAX; rc++) {
                 RandoCheckId checkId = static_cast<RandoCheckId>(rc);
+                if (!isCheckActive(checkId)) continue;
                 uint64_t apLocId = ArchipelagoBridge::GetLocationIdFromRandoCheck(checkId);
-
                 if (apLocId != 0 && ArchipelagoBridge::IsLocationChecked(apLocId)) {
                     locationsToResync.push_back(static_cast<int64_t>(apLocId));
                 }
             }
-
             if (!locationsToResync.empty()) {
                 sClient->LocationChecks(locationsToResync);
             }
