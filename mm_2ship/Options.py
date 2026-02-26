@@ -378,21 +378,21 @@ class StrayFairiesRequired(Range):
 class TrapAmount(Range):
     display_name = "Trap Amount"
     range_start = 0
-    range_end = 1000
+    range_end = 100
     default = 5
 
 
 class TriforcePiecesMax(Range):
     display_name = "Triforce Pieces Max"
     range_start = 1
-    range_end = 100
+    range_end = 1000
     default = 30
 
 
 class TriforcePiecesRequired(Range):
     display_name = "Triforce Pieces Required"
     range_start = 1
-    range_end = 100
+    range_end = 1000
     default = 20
 
 
