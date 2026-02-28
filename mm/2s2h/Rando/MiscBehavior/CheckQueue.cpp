@@ -55,7 +55,7 @@ void Rando::MiscBehavior::CheckQueue() {
                 if (Archipelago::IsConnected()) {
                     Archipelago::SendLocationCheck(apLocationId);
 
-                    // For our own items, the server will send them back via ApplyOneItem (with animation).
+                    // For our own items, the server will send them back via ProcessItemQueue (with animation).
                     // Only skip local give for non-placeholder items to avoid double-giving.
                     // AP placeholder items (going to other players) fall through to GIEventGiveItem
                     // so the animation still plays locally.
@@ -117,11 +117,6 @@ void Rando::MiscBehavior::CheckQueue() {
                         if (randoItemId == RI_TRAP) {
                             prefix = "";
                             message = GetTrapMessage();
-                            // We need to remove the Color Codes if the player is skipping Item Get Cutscenes as the
-                            // Notification Emit doesnt support it.
-                            if (CVarGetInteger("gEnhancements.Cutscenes.SkipGetItemCutscenes", 0) >= 2) {
-                                message = CustomMessage::RemoveColorCodes(message);
-                            }
                         }
 
                         // For AP placeholder items (another player's item at this location),
@@ -151,7 +146,9 @@ void Rando::MiscBehavior::CheckQueue() {
                         } else if (Rando::StaticData::ShouldShowGetItemCutscene(randoItemId)) {
                             CustomMessage::StartTextbox(entry.msg + "\x1C\x02\x10", entry);
                         } else {
-                            if (Rando::StaticData::Items[randoItemId].randoItemType != RITYPE_JUNK) {
+                            if (Rando::StaticData::Items[randoItemId].randoItemType != RITYPE_JUNK ||
+                                isArchiPlaceholder) {
+                                message = CustomMessage::RemoveColorCodes(message);
                                 Notification::Emit({
                                     .itemIcon = Rando::StaticData::GetIconTexturePath(randoItemId),
                                     .message = prefix,
@@ -164,14 +161,18 @@ void Rando::MiscBehavior::CheckQueue() {
                         randoSaveCheck.obtained = true;
                         randoSaveCheck.eligible = false;
                         queued = false;
-                        CUSTOM_ITEM_PARAM = randoItemId;
+                        if (!IS_ARCHI || !Archipelago::IsConnected()) {
+                            CUSTOM_ITEM_PARAM = randoItemId;
+                        }
                     },
                 .drawItem =
                     [](Actor* actor, PlayState* play) {
-                        RandoItemId randoItemId;
+                        RandoItemId randoItemId = RI_UNKNOWN;
 
                         // If the item has been given, the CUSTOM_ITEM_PARAM is set to the RI, prior to that it's the RC
-                        if (CUSTOM_ITEM_FLAGS & CustomItem::CALLED_ACTION) {
+                        // (Unless we're in AP)
+                        if (CUSTOM_ITEM_FLAGS & CustomItem::CALLED_ACTION &&
+                            (!IS_ARCHI || !Archipelago::IsConnected())) {
                             if ((RandoItemId)CUSTOM_ITEM_PARAM == RI_TRAP) {
                                 randoItemId = RI_MAX_TRAP;
                             } else {
@@ -181,17 +182,6 @@ void Rando::MiscBehavior::CheckQueue() {
                             auto& randoSaveCheck = RANDO_SAVE_CHECKS[CUSTOM_ITEM_PARAM];
                             randoItemId =
                                 Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM);
-
-                            // Safety: for Archi saves, if item is unknown, use a default to avoid crash
-                            if (randoItemId == RI_UNKNOWN && IS_ARCHI) {
-                                // Use the vanilla item for this check as fallback
-                                auto staticCheck = Rando::StaticData::Checks.find((RandoCheckId)CUSTOM_ITEM_PARAM);
-                                if (staticCheck != Rando::StaticData::Checks.end()) {
-                                    randoItemId = staticCheck->second.randoItemId;
-                                } else {
-                                    randoItemId = RI_RECOVERY_HEART; // Ultimate fallback
-                                }
-                            }
                         }
 
                         Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);

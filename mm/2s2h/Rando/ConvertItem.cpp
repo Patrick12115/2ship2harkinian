@@ -334,6 +334,9 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
         case RI_GS_TOKEN_SWAMP:
         case RI_GS_TOKEN_OCEAN:
         case RI_TRIFORCE_PIECE:
+        case RI_ARCHIPELAGO_JUNK:
+        case RI_ARCHIPELAGO_PROGRESSIVE:
+        case RI_ARCHIPELAGO_USEFUL:
             if (hasObtainedCheck) {
                 return false;
             }
@@ -650,10 +653,15 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
     return true;
 }
 
+static std::set<RandoItemId> APItems = {
+    RI_ARCHIPELAGO_PROGRESSIVE,
+    RI_ARCHIPELAGO_USEFUL,
+    RI_ARCHIPELAGO_JUNK,
+};
+
 RandoItemId Rando::ConvertItem(RandoItemId randoItemId, RandoCheckId randoCheckId) {
-    // Archipelago placeholders must never be converted or treated as real items.
-    if (randoItemId == RI_ARCHIPELAGO_PROGRESSIVE || randoItemId == RI_ARCHIPELAGO_USEFUL ||
-        randoItemId == RI_ARCHIPELAGO_JUNK) {
+    // If the check is not the player's, don't convert anything
+    if (APItems.contains(randoItemId) || APItems.contains(RANDO_SAVE_CHECKS[randoCheckId].randoItemId)) {
         return randoItemId;
     }
 

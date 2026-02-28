@@ -40,16 +40,6 @@ static std::set<int64_t> sCachedCheckedLocations;    // Cache server-checked loc
 // Store custom text for Archipelago items: RandoCheckId -> (playerName, itemName)
 static std::unordered_map<RandoCheckId, std::pair<std::string, std::string>> sArchipelagoItemText;
 
-// Metadata for Archipelago items from other players (for GameInteractor events)
-struct APItemMetadata {
-    RandoItemId randoItemId;
-    std::string playerName;
-    std::string displayItemName;
-    bool fromOtherPlayer;
-};
-static std::unordered_map<s16, APItemMetadata> sAPItemMetadata;
-static s16 sNextAPItemId = 1; // Counter for unique IDs
-
 // Include generated mapping from RandoCheckId to AP Location ID
 #include "APLocationMapping.h"
 
@@ -89,11 +79,6 @@ RandoCheckId GetRandoCheckFromLocationId(uint64_t apLocationId) {
 }
 
 RandoItemId GetRandoItemIdFromAPItemId(uint64_t apItemId, const std::string& itemName, uint32_t flags) {
-    // Mode 1: AP item ID is already a RandoItemId
-    if (CVarGetInteger("gArchipelago.ItemIdIsRandoItemId", 0)) {
-        return static_cast<RandoItemId>(apItemId);
-    }
-
     // Special-case: both triforce RIs share the same name; always prefer the canonical one.
     if (itemName == "Piece of the Triforce") {
         return RI_TRIFORCE_PIECE;
@@ -440,7 +425,8 @@ static void EnsureArchiSaveInitialized() {
     }
 }
 
-void EnqueueItem(uint64_t itemId, int fromPlayer, int64_t index, uint32_t flags, const std::string& itemName) {
+void EnqueueItem(uint64_t itemId, uint64_t locationId, int fromPlayer, int64_t index, uint32_t flags,
+                 const std::string& itemName) {
     // Persisted skip: do not queue historical items if the save has already processed past them.
     if (index >= 0) {
         if (!sSaveReadyForArchiInit) {
@@ -463,6 +449,7 @@ void EnqueueItem(uint64_t itemId, int fromPlayer, int64_t index, uint32_t flags,
 
     PendingItem p;
     p.itemId = itemId;
+    p.locationId = locationId;
     p.fromPlayer = fromPlayer;
     p.index = index;
     p.flags = flags;
@@ -615,26 +602,25 @@ static void PersistProcessedItemIndexIfNeeded(const PendingItem& item) {
     }
 }
 
-static void ApplyOneItem(const PendingItem& item) {
+static bool itemQueued = false;
+static void ProcessItemQueue() {
+    if (itemQueued || sPendingItems.empty()) {
+        return;
+    }
+
+    PendingItem item = sPendingItems.front();
+
     // Session-only dedupe by AP item index.
     if (item.index >= 0) {
         const auto [it, inserted] = sProcessedItemIndices.insert(item.index);
         if (!inserted) {
+            sPendingItems.pop();
             return;
         }
     }
 
     RandoItemId randoItemId = RI_UNKNOWN;
-    bool resolved = false;
-
-    // Mode 1: AP item ID is already a RandoItemId
-    if (CVarGetInteger("gArchipelago.ItemIdIsRandoItemId", 0)) {
-        randoItemId = static_cast<RandoItemId>(item.itemId);
-        resolved = true;
-    } else {
-        // Mode 2: resolve by AP display name -> Rando::StaticData::Items[*].name
-        resolved = TryResolveRandoItemIdByName(item.itemName, randoItemId);
-    }
+    bool resolved = TryResolveRandoItemIdByName(item.itemName, randoItemId);
 
     // Mode 3 (fallback): Item from another game - classify as Archipelago item based on flags
     // This runs if Mode 1 or Mode 2 failed
@@ -645,158 +631,92 @@ static void ApplyOneItem(const PendingItem& item) {
 
     if (!resolved || randoItemId == RI_UNKNOWN) {
         SPDLOG_WARN("[AP][Bridge] Could not resolve itemId={} name='{}' to a RandoItemId", item.itemId, item.itemName);
+        sPendingItems.pop();
         return;
     }
 
-    // Determine if item is from another player
-    int localPlayer = Archipelago::GetPlayerNumber();
-    bool fromOtherPlayer = (item.fromPlayer != localPlayer && item.fromPlayer >= 0 && localPlayer >= 0);
-
-    // Get display name for all items
-    std::string displayItemName = item.itemName;
-    if (displayItemName == "Unknown" || displayItemName.empty()) {
-        displayItemName = Archipelago::GetItemName(item.itemId, "2 Ship 2 Harkinian (MM)");
-        if (displayItemName == "Unknown" || displayItemName.empty()) {
-            std::string playerGame = Archipelago::GetPlayerGame(item.fromPlayer);
-            displayItemName = Archipelago::GetItemName(item.itemId, playerGame);
-        }
-    }
-
-    // Get player name for items from other players
-    std::string playerName = "";
-    if (fromOtherPlayer) {
-        playerName = Archipelago::GetPlayerAlias(item.fromPlayer);
-    }
-
-    // Allocate a unique ID for this item
-    s16 apItemId = sNextAPItemId++;
-    if (sNextAPItemId <= 0)
-        sNextAPItemId = 1; // Wrap around if needed
-
-    // Store metadata for the giveItem lambda
-    sAPItemMetadata[apItemId] = { .randoItemId = randoItemId,
-                                  .playerName = playerName,
-                                  .displayItemName = displayItemName,
-                                  .fromOtherPlayer = fromOtherPlayer };
+    itemQueued = true;
 
     // Queue a GameInteractor event for proper item display
     GameInteractor::Instance->events.emplace_back(GIEventGiveItem{
-        .showGetItemCutscene = Rando::StaticData::ShouldShowGetItemCutscene(randoItemId),
-        .param = apItemId,
+        .showGetItemCutscene = Rando::StaticData::ShouldShowGetItemCutscene(Rando::ConvertItem(randoItemId)),
+        .param = (s16)randoItemId,
         .giveItem =
             [](Actor* actor, PlayState* play) {
-                // Look up metadata using CUSTOM_ITEM_PARAM
-                s16 apItemId = CUSTOM_ITEM_PARAM;
-                auto it = sAPItemMetadata.find(apItemId);
-                if (it == sAPItemMetadata.end()) {
-                    SPDLOG_ERROR("[AP][Bridge] giveItem: No metadata for apItemId {}", apItemId);
-                    return;
+                PendingItem item = sPendingItems.front();
+                RandoCheckId randoCheckId = GetRandoCheckFromLocationId(item.locationId);
+
+                // Determine if item is from another player
+                int localPlayer = Archipelago::GetPlayerNumber();
+                bool fromOtherPlayer = (item.fromPlayer != localPlayer && item.fromPlayer >= 0 && localPlayer >= 0);
+
+                RandoItemId randoItemId = Rando::ConvertItem((RandoItemId)CUSTOM_ITEM_PARAM);
+
+                std::string message = "%g" + Rando::StaticData::GetItemName(randoItemId, true, randoCheckId) + "%w";
+                std::string prefix = "You found";
+
+                if (randoItemId == RI_JUNK && randoCheckId != RC_UNKNOWN) {
+                    // This field is only used for rando seed so we just pass it a unique value
+                    randoItemId = Rando::CurrentJunkItem(randoCheckId);
+                    // message = "%gJunk%w";
                 }
 
-                const APItemMetadata& meta = it->second;
-                RandoItemId randoItemId = meta.randoItemId;
-
-                // Convert the item for giving purposes (e.g., progressive upgrades, bombs -> junk if no bag).
-                // Only convert actual MM items, not Archipelago placeholder items from other games.
-                RandoItemId convertedItemId = randoItemId;
-                if (randoItemId != RI_ARCHIPELAGO_PROGRESSIVE && randoItemId != RI_ARCHIPELAGO_USEFUL &&
-                    randoItemId != RI_ARCHIPELAGO_JUNK) {
-
-                    convertedItemId = Rando::ConvertItem(randoItemId, RC_UNKNOWN);
-
-                    // If ConvertItem returned RI_JUNK, convert to an actual junk item (rupees, arrows, etc.)
-                    if (convertedItemId == RI_JUNK) {
-                        convertedItemId = Rando::CurrentJunkItem(RC_UNKNOWN);
-                    }
+                // Get player name for items from other players
+                if (fromOtherPlayer) {
+                    prefix = "You received";
+                    std::string playerName = Archipelago::GetPlayerAlias(item.fromPlayer);
+                    message += " from %y" + playerName + "%w";
                 }
 
-                // Build message pieces:
-                // - formattedMessage is for CustomMessage textboxes (supports %g/%w)
-                // - plainMessage is for Notification::Emit (does NOT support %g/%w)
-                // Always use the AP display name (e.g. "Progressive Bomb Bag") regardless of
-                // how the item was locally converted, since this item came from the AP server.
-                std::string prefix = "You received";
-                std::string displayItemName = meta.displayItemName;
-
-                bool isTrap = (convertedItemId == RI_TRAP);
-                if (isTrap) {
+                bool isTrap = (randoItemId == RI_TRAP);
+                if (randoItemId == RI_TRAP) {
                     prefix = "";
-                    displayItemName = GetTrapMessage();
-                    if (CVarGetInteger("gEnhancements.Cutscenes.SkipGetItemCutscenes", 0) >= 2) {
-                        displayItemName = CustomMessage::RemoveColorCodes(displayItemName);
-                    }
-                }
-
-                std::string plainMessage;
-                if (meta.fromOtherPlayer && !isTrap) {
-                    plainMessage = displayItemName + " from " + meta.playerName;
-                } else {
-                    plainMessage = displayItemName;
-                }
-
-                std::string formattedMessage;
-                if (meta.fromOtherPlayer && !isTrap) {
-                    formattedMessage = "%g" + displayItemName + "%w from %y" + meta.playerName + "%w";
-                } else {
-                    formattedMessage = "%g" + displayItemName + "%w";
+                    message = GetTrapMessage();
                 }
 
                 CustomMessage::Entry entry = {
                     .textboxType = 2,
-                    .icon = Rando::StaticData::GetIconForZMessage(convertedItemId),
-                    .msg = (prefix.empty() ? "" : prefix + " ") + formattedMessage + (isTrap ? "" : "!"),
+                    .icon = Rando::StaticData::GetIconForZMessage(randoItemId),
+                    .msg = (prefix.empty() ? "" : prefix + " ") + message + (isTrap ? "" : "!"),
                 };
 
                 // Show message based on cutscene settings
                 if (CUSTOM_ITEM_FLAGS & CustomItem::GIVE_ITEM_CUTSCENE) {
                     CustomMessage::SetActiveCustomMessage(entry.msg, entry);
-                } else if (Rando::StaticData::ShouldShowGetItemCutscene(convertedItemId)) {
+                } else if (Rando::StaticData::ShouldShowGetItemCutscene(randoItemId)) {
                     CustomMessage::StartTextbox(entry.msg + "\x1C\x02\x10", entry);
                 } else {
-                    Notification::Emit({
-                        .itemIcon = Rando::StaticData::GetIconTexturePath(convertedItemId),
-                        .message = prefix,
-                        .suffix = plainMessage,
-                    });
+                    if (Rando::StaticData::Items[randoItemId].randoItemType != RITYPE_JUNK) {
+                        message = CustomMessage::RemoveColorCodes(message);
+                        Notification::Emit({
+                            .itemIcon = Rando::StaticData::GetIconTexturePath(randoItemId),
+                            .message = prefix,
+                            .suffix = message,
+                        });
+                    }
                 }
-
-                // Give the item ONLY if it's a real MM item
-                const bool isApPlaceholder =
-                    (convertedItemId == RI_ARCHIPELAGO_PROGRESSIVE || convertedItemId == RI_ARCHIPELAGO_USEFUL ||
-                     convertedItemId == RI_ARCHIPELAGO_JUNK);
-
-                if (!isApPlaceholder) {
-                    Rando::GiveItem(convertedItemId);
-                }
-
-                // Set CUSTOM_ITEM_PARAM to the convertedItemId so drawItem can use it
-                // directly after CALLED_ACTION without needing the metadata map.
-                // This mirrors the CheckQueue pattern (avoids recovery heart flash).
-                sAPItemMetadata.erase(apItemId);
-                CUSTOM_ITEM_PARAM = (s16)convertedItemId;
+                Rando::GiveItem(randoItemId);
+                CUSTOM_ITEM_PARAM = (s16)randoItemId;
+                sPendingItems.pop();
+                itemQueued = false;
             },
         .drawItem =
             [](Actor* actor, PlayState* play) {
-                RandoItemId randoItemId;
+                RandoItemId randoItemId = RI_UNKNOWN;
 
                 if (CUSTOM_ITEM_FLAGS & CustomItem::CALLED_ACTION) {
-                    // After give: giveItem set CUSTOM_ITEM_PARAM to the convertedItemId.
                     randoItemId = (RandoItemId)CUSTOM_ITEM_PARAM;
                 } else {
-                    // Before give: CUSTOM_ITEM_PARAM holds the apItemId (metadata key).
-                    s16 apItemId = CUSTOM_ITEM_PARAM;
-                    auto it = sAPItemMetadata.find(apItemId);
-                    if (it == sAPItemMetadata.end()) {
-                        SPDLOG_ERROR("[AP][Bridge] drawItem: No metadata for apItemId {}", apItemId);
-                        Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-                        Rando::DrawItem(RI_RECOVERY_HEART, RC_UNKNOWN, actor);
-                        return;
+                    PendingItem item = sPendingItems.front();
+                    RandoCheckId randoCheckId = GetRandoCheckFromLocationId(item.locationId);
+                    randoItemId = Rando::ConvertItem((RandoItemId)CUSTOM_ITEM_PARAM);
+                    if (randoItemId == RI_JUNK && randoCheckId != RC_UNKNOWN) {
+                        randoItemId = Rando::CurrentJunkItem(randoCheckId);
                     }
-                    randoItemId = it->second.randoItemId;
                 }
 
                 Matrix_Scale(30.0f, 30.0f, 30.0f, MTXMODE_APPLY);
-                Rando::DrawItem(randoItemId, RC_UNKNOWN, actor);
+                Rando::DrawItem(randoItemId, (RandoCheckId)CUSTOM_ITEM_PARAM, actor);
             } });
 
     PersistProcessedItemIndexIfNeeded(item);
@@ -830,11 +750,7 @@ void Tick() {
         return;
     }
 
-    while (!sPendingItems.empty()) {
-        PendingItem item = sPendingItems.front();
-        sPendingItems.pop();
-        ApplyOneItem(item);
-    }
+    ProcessItemQueue();
 
     while (!sPendingDeaths.empty()) {
         PendingDeathLink dl = sPendingDeaths.front();
@@ -846,6 +762,7 @@ void Tick() {
 void Reset() {
     std::queue<PendingItem> items;
     std::swap(sPendingItems, items);
+    itemQueued = false;
 
     std::queue<PendingDeathLink> deaths;
     std::swap(sPendingDeaths, deaths);

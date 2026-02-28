@@ -272,8 +272,8 @@ std::map<RandoItemId, RandoStaticItem> Items = {
     RI(RI_WOODFALL_MAP,               "the",  "Woodfall Map",               RITYPE_LESSER,          ITEM_DUNGEON_MAP,                GI_MAP,                      GID_DUNGEON_MAP),
     RI(RI_WOODFALL_SMALL_KEY,         "a",    "Woodfall Small Key",         RITYPE_SMALL_KEY,       ITEM_KEY_SMALL,                  GI_KEY_SMALL,                GID_KEY_SMALL),
     RI(RI_WOODFALL_STRAY_FAIRY,       "a",    "Woodfall Stray Fairy",       RITYPE_STRAY_FAIRY,     ITEM_STRAY_FAIRIES,              GI_STRAY_FAIRY,              GID_NONE),
-    RI(RI_ARCHIPELAGO_PROGRESSIVE,    "a",    "Progressive Item",           RITYPE_MAJOR,           ITEM_NONE,                       GI_NONE,                     GID_NONE),
-    RI(RI_ARCHIPELAGO_USEFUL,         "a",    "Useful Item",                RITYPE_LESSER,          ITEM_NONE,                       GI_NONE,                     GID_NONE),
+    RI(RI_ARCHIPELAGO_PROGRESSIVE,    "",     "Progressive Item",           RITYPE_MAJOR,           ITEM_NONE,                       GI_NONE,                     GID_NONE),
+    RI(RI_ARCHIPELAGO_USEFUL,         "",     "Useful Item",                RITYPE_LESSER,          ITEM_NONE,                       GI_NONE,                     GID_NONE),
     RI(RI_ARCHIPELAGO_JUNK,           "",     "Junk Item",                  RITYPE_JUNK,            ITEM_NONE,                       GI_NONE,                     GID_NONE),
 };
 
@@ -388,10 +388,6 @@ u8 GetIconForZMessage(RandoItemId randoItemId) {
             return GI_MAGIC_JAR_BIG;
         case RI_GREAT_SPIN_ATTACK:
             return GI_SWORD_KOKIRI;
-        case RI_ARCHIPELAGO_PROGRESSIVE:
-        case RI_ARCHIPELAGO_USEFUL:
-        case RI_ARCHIPELAGO_JUNK:
-            return 0xFE; // No icon for Archipelago items (text-only message)
         default:
             break;
     }
@@ -595,12 +591,17 @@ bool ShouldShowGetItemCutscene(RandoItemId itemId) {
     }
 }
 
+static std::set<RandoItemId> APItems = {
+    RI_ARCHIPELAGO_PROGRESSIVE,
+    RI_ARCHIPELAGO_USEFUL,
+    RI_ARCHIPELAGO_JUNK,
+};
+
 std::string GetItemName(RandoItemId randoItemId, bool includeArticle, RandoCheckId randoCheckId) {
     std::string result;
 
     // Check if this is an Archipelago item and return custom text if available
-    if (randoItemId == RI_ARCHIPELAGO_PROGRESSIVE || randoItemId == RI_ARCHIPELAGO_USEFUL ||
-        randoItemId == RI_ARCHIPELAGO_JUNK) {
+    if (APItems.contains(RANDO_SAVE_CHECKS[randoCheckId].randoItemId)) {
         std::string archiText = ArchipelagoBridge::GetArchipelagoItemText(randoCheckId);
         if (!archiText.empty()) {
             return archiText; // Plain text, no color codes (color codes are added in CheckQueue for messages)

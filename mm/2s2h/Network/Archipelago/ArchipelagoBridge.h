@@ -10,6 +10,7 @@ namespace ArchipelagoBridge {
 
 struct PendingItem {
     uint64_t itemId = 0;
+    uint64_t locationId = 0;
     int fromPlayer = -1;
     int64_t index = -1;   // AP item index for dedupe/persistence
     uint32_t flags = 0;   // AP item flags (trap/advancement/useful), optional
@@ -24,7 +25,8 @@ struct PendingDeathLink {
 bool IsInGame();
 
 // Called by Archipelago.cpp handlers or Update() to queue work.
-void EnqueueItem(uint64_t itemId, int player, int64_t index, uint32_t flags, const std::string& itemName);
+void EnqueueItem(uint64_t itemId, uint64_t locationId, int player, int64_t index, uint32_t flags,
+                 const std::string& itemName);
 void EnqueueDeathLink(const std::string& source, const std::string& cause);
 
 bool IsLocationChecked(uint64_t locationId);

@@ -426,8 +426,8 @@ static void InstallHandlers() {
             sCachedReceivedItems.push_back({ item, itemName });
 
             // Enqueue for processing
-            ArchipelagoBridge::EnqueueItem((uint64_t)item.item, (int)item.player, (int64_t)item.index,
-                                           (uint32_t)item.flags, itemName);
+            ArchipelagoBridge::EnqueueItem((uint64_t)item.item, (uint64_t)item.location, (int)item.player,
+                                           (int64_t)item.index, (uint32_t)item.flags, itemName);
         }
     });
 
@@ -901,8 +901,9 @@ void Archipelago::ResyncItems() {
     // Re-enqueue all cached items - EnqueueItem will filter based on current save's receivedItemCount
     for (const auto& cached : sCachedReceivedItems) {
         // Use the cached resolved name instead of trying to re-resolve
-        ArchipelagoBridge::EnqueueItem((uint64_t)cached.item.item, (int)cached.item.player, (int64_t)cached.item.index,
-                                       (uint32_t)cached.item.flags, cached.resolvedName);
+        ArchipelagoBridge::EnqueueItem((uint64_t)cached.item.item, (uint64_t)cached.item.location,
+                                       (int)cached.item.player, (int64_t)cached.item.index, (uint32_t)cached.item.flags,
+                                       cached.resolvedName);
     }
 }
 
