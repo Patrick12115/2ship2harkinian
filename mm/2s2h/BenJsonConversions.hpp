@@ -62,7 +62,6 @@ void to_json(json& j, const ArchiSaveInfo& archi) {
         { "lastSyncMs", archi.lastSyncMs },
         { "receivedItemCount", archi.receivedItemCount },
         { "checkedLocationCount", archi.checkedLocationCount },
-        { "checkedLocations", std::vector<uint8_t>(archi.checkedLocations, archi.checkedLocations + sizeof(archi.checkedLocations)) },
         { "reserved", std::vector<uint8_t>(archi.reserved, archi.reserved + sizeof(archi.reserved)) }
     };
 }
@@ -86,17 +85,6 @@ void from_json(const json& j, ArchiSaveInfo& archi) {
     archi.lastSyncMs = j.value("lastSyncMs", 0u);
     archi.receivedItemCount = j.value("receivedItemCount", 0u);
     archi.checkedLocationCount = j.value("checkedLocationCount", 0u);
-
-    if (j.contains("checkedLocations")) {
-        auto checkedLocs = j["checkedLocations"].get<std::vector<uint8_t>>();
-        size_t copySize = std::min(checkedLocs.size(), sizeof(archi.checkedLocations));
-        memcpy(archi.checkedLocations, checkedLocs.data(), copySize);
-        if (copySize < sizeof(archi.checkedLocations)) {
-            memset(archi.checkedLocations + copySize, 0, sizeof(archi.checkedLocations) - copySize);
-        }
-    } else {
-        memset(archi.checkedLocations, 0, sizeof(archi.checkedLocations));
-    }
 
     if (j.contains("reserved")) {
         auto reservedData = j["reserved"].get<std::vector<uint8_t>>();

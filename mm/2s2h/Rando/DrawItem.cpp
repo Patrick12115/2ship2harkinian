@@ -2,7 +2,7 @@
 #include "2s2h/Enhancements/FrameInterpolation/FrameInterpolation.h"
 #include "2s2h/ShipInit.hpp"
 #include "2s2h/Rando/DrawFuncs.h"
-#include "2s2h/Network/Archipelago/ArchipelagoBridge.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h_assets.h"
 
 extern "C" {
@@ -397,11 +397,11 @@ void DrawArchipelagoItem(RandoItemId randoItemId, RandoCheckId randoCheckId, Act
     }
     Matrix_Pop();
 
-    if (CVarGetInteger("gArchipelago.ShowExternal2ShipItem", 0)) {
+    if (Archipelago::Instance->checkInfo.contains(randoCheckId)) {
         // If item name matches a local game item, also draw it (smaller and offset)
-        RandoItemId localItemId = ArchipelagoBridge::GetLocalItemFromArchipelagoCheck(randoCheckId);
-        if (localItemId != RI_NONE && localItemId != RI_UNKNOWN && localItemId != RI_ARCHIPELAGO_JUNK &&
-            localItemId != RI_ARCHIPELAGO_PROGRESSIVE && localItemId != RI_ARCHIPELAGO_USEFUL &&
+        RandoItemId localItemId =
+            Archipelago::Instance->GetRandoItemIdFromNetworkItem(Archipelago::Instance->checkInfo[randoCheckId]);
+        if (localItemId != RI_NONE && localItemId != RI_UNKNOWN && !Archipelago::IsAPItem(localItemId) &&
             localItemId != RI_TRAP) {
             Matrix_Push();
             Matrix_Scale(0.4f, 0.4f, 0.4f, MTXMODE_APPLY);

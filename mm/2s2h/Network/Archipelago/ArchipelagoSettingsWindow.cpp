@@ -1,34 +1,32 @@
-#include "ArchipelagoSettingsWindow.h"
 #include "ArchipelagoConsoleWindow.h"
 #include "Archipelago.h"
-#include "BenGui/BenGui.hpp"
-#include "BenGui/UIWidgets.hpp"
+#include "2s2h/BenGui/UIWidgets.hpp"
+#include "2s2h/BenGui/BenGui.hpp"
+#include "2s2h/BenGui/BenMenu.h"
 #include <imgui.h>
 #include <string>
 #include <cstring>
+#include "2s2h/Network/Archipelago/Archipelago.h"
+
+namespace BenGui {
+extern std::shared_ptr<BenMenu> mBenMenu;
+} // namespace BenGui
 
 using namespace UIWidgets;
 
-void ArchipelagoSettingsWindow::DrawElement() {
-    // This controls whether NEWLY CREATED saves become SAVETYPE_ARCHI in OnFileCreate.
-    // Existing saves use shipSaveInfo.saveType and are not changed by this.
-    if (UIWidgets::CVarCheckbox("Enable Archipelago for new saves", "gArchipelago.Enabled",
-                                UIWidgets::CheckboxOptions()
-                                    .Color(THEME_COLOR)
-                                    .Tooltip("When enabled, creating a new file will mark it as an Archipelago save.\n"
-                                             "Existing saves are not changed.\n\n"
-                                             "Note: enabling Archipelago will disable Randomizer mode."))) {
-        if (CVarGetInteger("gArchipelago.Enabled", 0)) {
-            CVarSetInteger("gRando.Enabled", 0);
-            CVarSave();
-        }
-    }
+static void DrawArchipelagoMenu() {
+    UIWidgets::CVarCheckbox("Enable Archipelago for new saves", "gArchipelago.Enabled",
+                            UIWidgets::CheckboxOptions()
+                                .Color(THEME_COLOR)
+                                .Tooltip("When enabled, creating a new file will mark it as an Archipelago save.\n"
+                                         "Existing saves are not changed.\n\n"
+                                         "Note: Archipelago will override Randomizer mode."));
 
     ImGui::SeparatorText("Connection info");
 
     // Connect / Disconnect button + status (match SoH placement)
-    const bool connected = Archipelago::IsConnected();
-    const bool connecting = Archipelago::IsConnecting();
+    const bool connected = Archipelago::Instance->IsConnected();
+    const bool connecting = Archipelago::Instance->GetState() >= 1 && Archipelago::Instance->GetState() <= 3;
 
     UIWidgets::PushStyleCombobox(THEME_COLOR);
     ImGui::PushStyleColor(ImGuiCol_Border, UIWidgets::ColorValues.at(THEME_COLOR));
@@ -52,38 +50,27 @@ void ArchipelagoSettingsWindow::DrawElement() {
                                    .LabelPosition(UIWidgets::LabelPosition::None));
 
     ImGui::Text("Password (leave blank for no password)");
-    // 2Ship doesn't have IsSecret(true), so we mirror SoH visuals but use ImGui Password.
-    {
-        static char passBuf[256];
-        std::string pass = CVarGetString("gArchipelago.Password", "");
-        std::strncpy(passBuf, pass.c_str(), sizeof(passBuf));
-        passBuf[sizeof(passBuf) - 1] = '\0';
-
-        UIWidgets::PushStyleInput(THEME_COLOR);
-        ImGui::SetNextItemWidth(ImGui::GetFontSize() * 15);
-        if (ImGui::InputText("##ArchipelagoPassword", passBuf, sizeof(passBuf),
-                             ImGuiInputTextFlags_Password | ImGuiInputTextFlags_CallbackAlways,
-                             [](ImGuiInputTextCallbackData* data) {
-                                 CVarSetString("gArchipelago.Password", data->Buf);
-                                 return 0;
-                             })) {}
-        UIWidgets::PopStyleInput();
-    }
+    UIWidgets::CVarInputString("##ArchipelagoPassword", "gArchipelago.Password",
+                               UIWidgets::InputOptions()
+                                   .Color(THEME_COLOR)
+                                   .IsSecret(true)
+                                   .Size(ImVec2(ImGui::GetFontSize() * 15, 0))
+                                   .LabelPosition(UIWidgets::LabelPosition::None));
 
     ImGui::EndDisabled();
 
     ImGui::PopStyleColor();
     UIWidgets::PopStyleCombobox();
 
-    if (!connected) {
+    if (!connected && !connecting) {
         if (UIWidgets::Button("Connect", UIWidgets::ButtonOptions().Color(THEME_COLOR).Size(ImVec2(0.0f, 0.0f)))) {
             CVarSetInteger("gArchipelago.Enabled", 1);
             CVarSave();
-            Archipelago::ConnectFromCvars();
+            Archipelago::Instance->Enable();
         }
     } else {
         if (UIWidgets::Button("Disconnect", UIWidgets::ButtonOptions().Color(THEME_COLOR).Size(ImVec2(0.0f, 0.0f)))) {
-            Archipelago::Disconnect();
+            Archipelago::Instance->Disable();
         }
     }
 
@@ -105,11 +92,8 @@ void ArchipelagoSettingsWindow::DrawElement() {
     if (UIWidgets::CVarCheckbox(
             "Death Link", "gArchipelago.DeathLink",
             UIWidgets::CheckboxOptions().Color(THEME_COLOR).Tooltip("You die, others die.\nOthers die, you die!"))) {
-        Archipelago::SetDeathLinkTag();
+        // Archipelago::SetDeathLinkTag();
     }
-    UIWidgets::CVarCheckbox(
-        "Show External 2Ship Item", "gArchipelago.ShowExternal2ShipItem",
-        UIWidgets::CheckboxOptions().Color(THEME_COLOR).Tooltip("If the item is from 2ship, blah blah"));
 
     UIWidgets::CVarSliderFloat("Console Scale", "gArchipelago.Console.Scale",
                                UIWidgets::FloatSliderOptions()
@@ -150,5 +134,25 @@ void ArchipelagoSettingsWindow::DrawElement() {
                                    .Tooltip("Size multiplier for the status indicator icon and text."));
 }
 
-void ArchipelagoSettingsWindow::InitElement() {
-}
+static RegisterMenuInitFunc initFunc([]() {
+    BenGui::mBenMenu->AddMenuEntry("Network", "gSettings.Menu.NetworkSidebarSection");
+
+    // Make this sidebar page have 2 columns
+    BenGui::mBenMenu->AddSidebarEntry("Network", "Archipelago", 2);
+
+    // Left column: Settings
+    {
+        WidgetPath left = { "Network", "Archipelago", SECTION_COLUMN_1 };
+        BenGui::mBenMenu->AddWidget(left, "Settings", WIDGET_CUSTOM).CustomFunction([](WidgetInfo& info) {
+            DrawArchipelagoMenu();
+        });
+    }
+
+    // Right column: Console
+    {
+        WidgetPath right = { "Network", "Archipelago", SECTION_COLUMN_2 };
+        BenGui::mBenMenu->AddWidget(right, "Console", WIDGET_WINDOW_BUTTON)
+            .CVar("gWindows.ArchipelagoConsole")
+            .WindowName("Archipelago Console");
+    }
+});

@@ -12,7 +12,7 @@
 #include "2s2h/ShipUtils.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h_assets.h"
-#include "2s2h/Network/Archipelago/ArchipelagoBridge.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 extern s16 D_801CFF94[250];
@@ -326,33 +326,6 @@ RandoItemId GetItemIdFromName(const char* name) {
     return RI_UNKNOWN;
 }
 
-RandoItemId GetItemIdFromDisplayName(const char* name) {
-    if (!name)
-        return RI_UNKNOWN;
-
-    auto skipArticle = [](const char* s) {
-        while (*s == ' ')
-            s++;
-        if (!strncasecmp(s, "a ", 2))
-            return s + 2;
-        if (!strncasecmp(s, "an ", 3))
-            return s + 3;
-        if (!strncasecmp(s, "the ", 4))
-            return s + 4;
-        return s;
-    };
-
-    const char* stripped = skipArticle(name);
-
-    for (auto& [randoItemId, randoStaticItem] : Items) {
-        if (!strcasecmp(stripped, randoStaticItem.name)) {
-            return randoItemId;
-        }
-    }
-
-    return RI_UNKNOWN;
-}
-
 RandoItemId GetItemIdFromVanillaItemId(u32 itemId) {
     for (auto& [randoItemId, randoStaticItem] : Items) {
         if (randoStaticItem.itemId == itemId) {
@@ -591,21 +564,15 @@ bool ShouldShowGetItemCutscene(RandoItemId itemId) {
     }
 }
 
-static std::set<RandoItemId> APItems = {
-    RI_ARCHIPELAGO_PROGRESSIVE,
-    RI_ARCHIPELAGO_USEFUL,
-    RI_ARCHIPELAGO_JUNK,
-};
-
 std::string GetItemName(RandoItemId randoItemId, bool includeArticle, RandoCheckId randoCheckId) {
     std::string result;
 
     // Check if this is an Archipelago item and return custom text if available
-    if (APItems.contains(RANDO_SAVE_CHECKS[randoCheckId].randoItemId)) {
-        std::string archiText = ArchipelagoBridge::GetArchipelagoItemText(randoCheckId);
-        if (!archiText.empty()) {
-            return archiText; // Plain text, no color codes (color codes are added in CheckQueue for messages)
-        }
+    if (Archipelago::IsAPItem(randoItemId) && randoCheckId != RC_UNKNOWN) {
+        std::string playerName;
+        std::string itemName;
+        Archipelago::Instance->GetArchipelagoItemInfo(randoCheckId, playerName, itemName);
+        return playerName + "'s " + itemName;
     }
 
     if (includeArticle && !Ship_IsCStringEmpty(Rando::StaticData::Items[randoItemId].article)) {

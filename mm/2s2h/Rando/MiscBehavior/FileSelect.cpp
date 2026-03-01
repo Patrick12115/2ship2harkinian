@@ -537,29 +537,25 @@ void RegisterShoulds() {
         // If Archi is enabled and clicking on empty slot, treat it as Archi file creation
         if (archiEnabled && isEmptySlot) {
             // Check connection status
-            int connectionStatus = CVarGetInteger("gArchipelago.ConnectionStatus", 0);
-            bool isConnected = Archipelago::IsConnected();
+            u8 connectionStatus = Archipelago::Instance->GetState();
+            bool isConnected = Archipelago::Instance->IsConnected();
 
             // If not connected, trigger connection
             if (connectionStatus == 0 && !isConnected) {
-                Archipelago::ConnectFromCvars();
-                connectionStatus = CVarGetInteger("gArchipelago.ConnectionStatus", 0);
+                Archipelago::Instance->Enable();
+                connectionStatus = Archipelago::Instance->GetState();
             }
 
             // Block if not fully connected yet
-            if (connectionStatus != 4) {
+            if (!isConnected) {
                 *should = false;
 
                 // Play error sound
                 // Audio_PlaySfx(NA_SE_SY_ERROR);
 
-                // Show appropriate message
-                const char* message = connectionStatus == 1 || connectionStatus == 2 || connectionStatus == 3
-                                          ? "Connecting to Archipelago... Please wait."
-                                          : "Connecting to Archipelago...";
-
-                Notification::Emit(
-                    { .message = message, .messageColor = ImVec4(1.0f, 0.5f, 0.5f, 1.0f), .remainingTime = 5.0f });
+                Notification::Emit({ .message = "Connecting to Archipelago...",
+                                     .messageColor = ImVec4(1.0f, 0.5f, 0.5f, 1.0f),
+                                     .remainingTime = 5.0f });
                 return;
             }
 
@@ -584,29 +580,25 @@ void RegisterShoulds() {
         // If it's an Archi file and Archi is enabled, handle connection
         if (isArchiFile && archiEnabled) {
             // Check connection status (4 = fully connected and scouted)
-            int connectionStatus = CVarGetInteger("gArchipelago.ConnectionStatus", 0);
-            bool isConnected = Archipelago::IsConnected();
+            u8 connectionStatus = Archipelago::Instance->GetState();
+            bool isConnected = Archipelago::Instance->IsConnected();
 
             // If not connected, trigger connection
             if (connectionStatus == 0 && !isConnected) {
-                Archipelago::ConnectFromCvars();
-                connectionStatus = CVarGetInteger("gArchipelago.ConnectionStatus", 0);
+                Archipelago::Instance->Enable();
+                connectionStatus = Archipelago::Instance->GetState();
             }
 
             // Block if not fully connected yet
-            if (connectionStatus != 4) {
+            if (!isConnected) {
                 *should = false;
 
                 // Play error sound
                 // Audio_PlaySfx(NA_SE_SY_ERROR);
 
-                // Show appropriate message based on status
-                const char* message = connectionStatus == 1 || connectionStatus == 2 || connectionStatus == 3
-                                          ? "Connecting to Archipelago... Please wait."
-                                          : "Connecting to Archipelago...";
-
-                Notification::Emit(
-                    { .message = message, .messageColor = ImVec4(1.0f, 0.5f, 0.5f, 1.0f), .remainingTime = 5.0f });
+                Notification::Emit({ .message = "Connecting to Archipelago...",
+                                     .messageColor = ImVec4(1.0f, 0.5f, 0.5f, 1.0f),
+                                     .remainingTime = 5.0f });
                 return;
             }
 

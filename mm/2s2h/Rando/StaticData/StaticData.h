@@ -51,7 +51,6 @@ extern std::map<StartingItemCategory, std::vector<RandoItemId>> StartingItemsMap
 extern std::map<RandoItemId, u8> MaxStartingItemsMap;
 
 RandoItemId GetItemIdFromName(const char* name);
-RandoItemId GetItemIdFromDisplayName(const char* name);
 RandoItemId GetItemIdFromVanillaItemId(u32 itemId);
 u8 GetIconForZMessage(RandoItemId itemId);
 const char* GetIconTexturePath(RandoItemId itemId);
@@ -64,6 +63,7 @@ struct RandoStaticOption {
     const char* name;
     const char* cvar;
     u32 defaultValue;
+    const char* apName;
 };
 
 extern std::map<RandoOptionId, RandoStaticOption> Options;

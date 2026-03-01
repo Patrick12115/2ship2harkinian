@@ -1,5 +1,4 @@
 #include "ActorBehavior.h"
-#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/ObjectExtension/ActorListIndex.h"
 #include "2s2h/CustomItem/CustomItem.h"
@@ -39,16 +38,6 @@ EnItem00* spawnReplacementItem(Vec3f& pos, Rando::StaticData::RandoStaticCheck& 
                     break;
                 case FLAG_CYCL_SCENE_COLLECTIBLE:
                     Flags_SetCollectible(play, randoStaticCheck.flag);
-
-                    // For Archipelago saves, also mark as eligible directly
-                    // This is necessary because if the collectible flag was already set
-                    // (e.g., from permanentSceneFlags), the OnSceneFlagSet hook won't trigger
-                    if (IS_ARCHI) {
-                        if (RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId].shuffled &&
-                            !RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId].obtained) {
-                            RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId].eligible = true;
-                        }
-                    }
                     break;
                 default:
                     break;
@@ -73,11 +62,7 @@ void Rando::ActorBehavior::InitEnItem00Behavior() {
             RandoCheckId randoCheckId = static_cast<RandoCheckId>(it->second + i);
             auto randoStaticCheck = Rando::StaticData::Checks[randoCheckId];
             auto randoSaveCheck = RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId];
-            // For Archipelago, check 'obtained' instead of 'cycleObtained'
-            // Once an AP location is collected, it's permanent (no cycle resets)
-            bool shouldSpawn =
-                randoSaveCheck.shuffled && (IS_ARCHI ? !randoSaveCheck.obtained : !randoSaveCheck.cycleObtained);
-            if (shouldSpawn) {
+            if (randoSaveCheck.shuffled && !randoSaveCheck.cycleObtained) {
                 ObjMure3* objMure3 = (ObjMure3*)actor;
                 Vec3f spawnPos;
                 spawnPos.y = objMure3->actor.world.pos.y;
@@ -121,24 +106,13 @@ void Rando::ActorBehavior::InitEnItem00Behavior() {
 
         auto randoSaveCheck = RANDO_SAVE_CHECKS[randoStaticCheck.randoCheckId];
 
-        // For Archipelago, check 'obtained' instead of 'cycleObtained'
-        // Once an AP location is collected, it's permanent (no cycle resets)
-        bool isObtained = IS_ARCHI ? randoSaveCheck.obtained : randoSaveCheck.cycleObtained;
-
-        // If not shuffled, let vanilla item spawn
-        if (!randoSaveCheck.shuffled) {
+        if (!randoSaveCheck.shuffled || randoSaveCheck.cycleObtained) {
             return;
         }
 
-        // Always prevent the vanilla item from spawning for shuffled checks
+        // Prevent the original item from spawning
         *should = false;
 
-        // If already obtained, don't spawn replacement item either
-        if (isObtained) {
-            return;
-        }
-
-        // Spawn replacement item
         spawnReplacementItem(actor->world.pos, randoStaticCheck);
     });
 }

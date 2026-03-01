@@ -7,7 +7,6 @@
 #include "ClockShuffle.h"
 #include <spdlog/spdlog.h>
 #include "2s2h/BenGui/Notification.h"
-#include "2s2h/Network/Archipelago/ArchipelagoBridge.h"
 
 extern "C" {
 #include "functions.h"
@@ -19,15 +18,12 @@ extern "C" {
 // Very primitive randomizer implementation, when a save is created, if rando is enabled
 // we set the save type to rando and shuffle all checks and persist the results to the save
 void Rando::MiscBehavior::OnFileCreate(s16 fileNum) {
-    const int apEnabled = CVarGetInteger("gArchipelago.Enabled", 0);
-    const int randoEnabled = CVarGetInteger("gRando.Enabled", 0);
-
-    if (apEnabled) {
+    if (CVarGetInteger("gArchipelago.Enabled", 0)) {
         gSaveContext.save.shipSaveInfo.saveType = SAVETYPE_RANDO;
+        memset(&gSaveContext.save.shipSaveInfo.rando, 0, sizeof(gSaveContext.save.shipSaveInfo.rando));
         gSaveContext.save.shipSaveInfo.rando.isArchiSave = true;
 
         auto& archi = gSaveContext.save.shipSaveInfo.rando.archipelago;
-        memset(&archi, 0, sizeof(archi));
         archi.magic = ARCHI_SAVE_MAGIC;
         archi.version = ARCHI_SAVE_VERSION;
 
@@ -44,7 +40,6 @@ void Rando::MiscBehavior::OnFileCreate(s16 fileNum) {
 
         archi.receivedItemCount = 0;
         archi.checkedLocationCount = 0;
-        memset(archi.checkedLocations, 0, sizeof(archi.checkedLocations));
 
         // Set starting state to match Rando: skip first cycle, start as Human at South Clock Town
         gSaveContext.save.entrance = ENTRANCE(SOUTH_CLOCK_TOWN, 0);
@@ -64,56 +59,8 @@ void Rando::MiscBehavior::OnFileCreate(s16 fileNum) {
 
         // NOTE: We do NOT mark all checks as shuffled here.
         // Checks are only marked as shuffled when they appear in location_info from the server
-        // (see ArchipelagoBridge::PopulateLocationRewards)
-        // This ensures that excluded locations (e.g., Termina Field grass when excluded) are not sent to the server.
-
-        // Initialize all shuffle options to OFF by default (conservative)
-        // Actual values from slot_data will override these when connecting to AP
-        // This ensures items are given at start by default until AP connection provides real settings
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_COWS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_TINGLE_SHOPS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_TREE_DROPS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_ENEMY_DROPS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_SWIM] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_BOSS_SOULS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_ENEMY_SOULS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_GRASS_DROPS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_POT_DROPS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_BARREL_DROPS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_CRATE_DROPS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_SNOWBALL_DROPS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_FREESTANDING_ITEMS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_SHOPS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_FROGS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_GOLD_SKULLTULAS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_OWL_STATUES] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_BOSS_REMAINS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_SONG_SUN] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_SONG_DOUBLE_TIME] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_SONG_INVERTED_TIME] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_SONG_SARIA] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_OCARINA_BUTTONS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_TRAPS] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_SHUFFLE_TRIFORCE_PIECES] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_CLOCK_SHUFFLE] = RO_GENERIC_NO;
-        RANDO_SAVE_OPTIONS[RO_LOGIC] = RO_LOGIC_GLITCHLESS;
-        RANDO_SAVE_OPTIONS[RO_STARTING_MAPS_AND_COMPASSES] = RO_GENERIC_NO;
-
-        // Note: These default options will be overridden when connecting to AP server
-        // (see Archipelago.cpp slot_connected_handler -> ApplySlotOptions)
-        // Location rewards are populated from the server via location scouting
-        // Starting item checks are marked eligible in ArchipelagoBridge::PopulateLocationRewards
-
-        // Clear session dedupe for this new save.
-        // Without this, sSeenItemIndices from a previously loaded save bleeds into the new file
-        // and silently blocks all items from being re-received via EnqueueItem.
-        // We only clear dedupe here; the full OnFileLoad (called via OnSaveLoad) handles the rest.
-        ArchipelagoBridge::ClearSessionDedupe();
-
         return;
-    }
-
-    if (CVarGetInteger("gRando.Enabled", 0)) {
+    } else if (CVarGetInteger("gRando.Enabled", 0)) {
         gSaveContext.save.shipSaveInfo.saveType = SAVETYPE_RANDO;
         // Zero out the rando struct
         memset(&gSaveContext.save.shipSaveInfo.rando, 0, sizeof(gSaveContext.save.shipSaveInfo.rando));

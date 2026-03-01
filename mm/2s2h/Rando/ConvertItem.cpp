@@ -653,18 +653,7 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
     return true;
 }
 
-static std::set<RandoItemId> APItems = {
-    RI_ARCHIPELAGO_PROGRESSIVE,
-    RI_ARCHIPELAGO_USEFUL,
-    RI_ARCHIPELAGO_JUNK,
-};
-
 RandoItemId Rando::ConvertItem(RandoItemId randoItemId, RandoCheckId randoCheckId) {
-    // If the check is not the player's, don't convert anything
-    if (APItems.contains(randoItemId) || APItems.contains(RANDO_SAVE_CHECKS[randoCheckId].randoItemId)) {
-        return randoItemId;
-    }
-
     if (IsItemObtainable(randoItemId, randoCheckId)) {
         switch (randoItemId) {
             case RI_TIME_PROGRESSIVE: {
