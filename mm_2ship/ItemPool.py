@@ -191,6 +191,11 @@ def create_item_pool(world: "MM2ShipWorld") -> None:
                     item_counts[skulltula_item] -= 1
                     break
 
+    # Step 4: Add extra copies of items specified by the player
+    for item_name, count in world.options.extra_items.items():
+        for _ in range(count):
+            world.multiworld.itempool.append(world.create_item(item_name))
+
     # Track how many items we've added for THIS player (for filler calculation)
     world.items_added = len([item for item in world.multiworld.itempool if item.player == world.player])
 

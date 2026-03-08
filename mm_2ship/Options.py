@@ -4,6 +4,7 @@ from Options import (
     Toggle,
     DefaultOnToggle,
     Range,
+    ItemDict,
     PerGameCommonOptions,
     StartInventoryPool,
     Visibility,
@@ -395,6 +396,17 @@ class TriforcePiecesRequired(Range):
     default = 20
 
 
+class ExtraItems(ItemDict):
+    """
+    Add extra copies of items into the pool on top of what is already there.
+    For example, "Goron Mask: 2" adds two more Goron Masks, giving three total.
+    Items with dedicated count options (Stray Fairies, Skulltula Tokens,
+    Triforce Pieces, Traps) should use those options instead.
+    """
+    verify_item_name = True
+    display_name = "Extra Items"
+
+
 # -----------------------------
 # Per-game options dataclass
 # -----------------------------
@@ -497,6 +509,8 @@ class MM2ShipOptions(PerGameCommonOptions):
     hints_song_of_soaring: HintsSongOfSoaring
     hints_spider_houses: HintsSpiderHouses
 
+    extra_items: ExtraItems
+
     # -----------------------------
     # AP common (if you insist it appears somewhere specific)
     # -----------------------------
@@ -523,6 +537,7 @@ mm2ship_option_groups = [
 
         # core logic + density
         PlentifulItems,
+        ExtraItems,
 
         # goal / endgame
         ShuffleTriforcePieces,
