@@ -35,7 +35,6 @@
 #include "DeveloperTools/DLViewer.h"
 #include "DeveloperTools/MessageViewer.h"
 
-#include "Network/Archipelago/ArchipelagoSettingsWindow.h"
 #include "Network/Archipelago/ArchipelagoConsoleWindow.h"
 #include "Network/Archipelago/ArchipelagoStatusWindow.h"
 
@@ -71,7 +70,6 @@ std::shared_ptr<TimesplitsSettingsWindow> mTimesplitsSettingsWindow;
 std::shared_ptr<InputViewer> mInputViewer;
 std::shared_ptr<InputViewerSettingsWindow> mInputViewerSettings;
 std::shared_ptr<BenModalWindow> mModalWindow;
-std::shared_ptr<ArchipelagoSettingsWindow> mArchipelagoSettingsWindow;
 std::shared_ptr<ArchipelagoConsoleWindow> mArchipelagoConsoleWindow;
 std::shared_ptr<ArchipelagoStatusWindow> mArchipelagoStatusWindow;
 
@@ -191,9 +189,6 @@ void SetupGuiElements() {
     mModalWindow = std::make_shared<BenModalWindow>("gWindows.ModalWindow", "Modal Window");
     gui->AddGuiWindow(mModalWindow);
     mModalWindow->Show();
-    mArchipelagoSettingsWindow = std::make_shared<ArchipelagoSettingsWindow>("gWindows.ArchipelagoSettings",
-                                                                             "Archipelago Settings", ImVec2(520, 600));
-    gui->AddGuiWindow(mArchipelagoSettingsWindow);
 
     mArchipelagoConsoleWindow = std::make_shared<ArchipelagoConsoleWindow>("gWindows.ArchipelagoConsole",
                                                                            "Archipelago Console", ImVec2(520, 600));
@@ -234,7 +229,6 @@ void Destroy() {
     mItemTrackerSettingsWindow = nullptr;
     mInputViewer = nullptr;
     mInputViewerSettings = nullptr;
-    mArchipelagoSettingsWindow = nullptr;
     mArchipelagoConsoleWindow = nullptr;
 }
 

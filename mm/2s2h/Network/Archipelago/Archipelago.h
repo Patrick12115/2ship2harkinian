@@ -1,87 +1,65 @@
-#pragma once
-
-// Must be defined BEFORE any websocketpp / wswrap / apclientpp includes.
-#ifdef _WIN32
-// Prevent windows.h from dragging in winsock.h (which conflicts with WinSock2.h)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
-// Make sure Winsock2 is used, not winsock.h
-#ifndef _WINSOCKAPI_
-#define _WINSOCKAPI_
-#endif
-
-// apclientpp/wswrap note this sometimes matters for Asio on Windows
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0600
-#endif
-#endif
-
-// Force standalone Asio mode (no Boost.Asio)
-#ifndef ASIO_STANDALONE
-#define ASIO_STANDALONE
-#endif
-
-// Force websocketpp to use std::type_traits instead of Boost type_traits
-#ifndef _WEBSOCKETPP_CPP11_TYPE_TRAITS_
-#define _WEBSOCKETPP_CPP11_TYPE_TRAITS_
-#endif
-
-// Force websocketpp to use std::random (avoids Boost random)
-#ifndef _WEBSOCKETPP_CPP11_RANDOM_DEVICE_
-#define _WEBSOCKETPP_CPP11_RANDOM_DEVICE_
-#endif
-#ifndef _WEBSOCKETPP_CPP11_RANDOM_
-#define _WEBSOCKETPP_CPP11_RANDOM_
-#endif
-
-#include "variables.h" // for gSaveContext + SAVETYPE_*
+#ifndef NETWORK_ARCHIPELAGO_H
+#define NETWORK_ARCHIPELAGO_H
 
 #define IS_ARCHI (IS_RANDO && gSaveContext.save.shipSaveInfo.rando.isArchiSave)
 
 #ifdef __cplusplus
-#include <string>
-class Archipelago {
-  public:
-    static void Init();
-    static void Shutdown();
-    static void Update();
 
-    static void RegisterMenu();
+#include <unordered_map>
+#include <set>
+#include <nlohmann/json.hpp>
+#include "2s2h/Rando/Rando.h"
 
-    static void ConnectFromCvars();
-    static void Disconnect();
-    static void SetDeathLinkTag();
-    static bool IsConnected();
-    static bool IsConnecting();
-    static const char* GetStatusText();
-    static void SendChat(const char* msg);
-    static std::string GetPlayerAlias(int playerId);
-    static int GetPlayerNumber();                                            // Get local player's slot number
-    static std::string GetItemName(int64_t itemId, const std::string& game); // Get item name from AP
-    static std::string GetPlayerGame(int playerId);                          // Get game name for a player
-    static void ResyncItems(); // Re-enqueue all cached items for current save file
-
-    // Send one location check to the AP server (no persistence here; call sites/bridge handle that).
-    static void SendLocationCheck(uint64_t locationId);
-
-    // New: called when a save is loaded (mirrors Rando's pattern)
-    static void OnFileLoad(s16 fileNum);
+// Forward declare from APClient
+struct NetworkItem {
+    int64_t item;
+    int64_t location;
+    int player;
+    unsigned flags;
+    int index = -1;
 };
+
+class Archipelago {
+  private:
+    int connectionRetryCount;
+    bool isConnectionReady;
+    bool isSlotDataReady;
+    bool isCheckInfoReady;
+    bool isSaveSynced;
+    bool isItemQueued;
+    // Slot data which includes options and price info
+    nlohmann::json slotData;
+    // Checked Locations, size compared with gSaveContext...archipelago.checkedLocationCount
+    std::set<int64_t> incomingCheckedLocations;
+    // Items indexed by gSaveContext...archipelago.receivedItemCount
+    std::vector<NetworkItem> incomingItems;
+
+    // Lifecycle
+    void RegisterHooks();
+    void OnConnected();
+    void OnDisconnected();
+    void OnGameTick();
+    void ProcessItemQueue();
+    void Reset();
+
+  public:
+    static bool IsAPItem(RandoItemId randoItemId);
+    static Archipelago* Instance;
+
+    // Map of actually shuffled checks, their item and player
+    std::unordered_map<RandoCheckId, NetworkItem> checkInfo;
+
+    void Enable();
+    void Disable();
+    void DrawMenu();
+    u8 GetState();
+    bool IsConnected();
+
+    void SendChat(const char* msg);
+    void SendLocationCheck(RandoCheckId randoCheckId);
+    void GetArchipelagoItemInfo(RandoCheckId checkId, std::string& playerName, std::string& itemName);
+    RandoItemId GetRandoItemIdFromNetworkItem(NetworkItem networkItem, bool convertOtherPlayerItems = false);
+};
+
 #endif // __cplusplus
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// C-callable wrapper for Archipelago connection status
-int Archipelago_IsConnected(void);
-void Archipelago_ConnectFromCvars(void);
-
-#ifdef __cplusplus
-}
-#endif
+#endif // NETWORK_ARCHIPELAGO_H

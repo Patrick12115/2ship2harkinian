@@ -1,5 +1,5 @@
 #include "ArchipelagoConsoleWindow.h"
-#include "Archipelago.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "BenGui/BenGui.hpp"
 #include "BenGui/UIWidgets.hpp"
 #include "ArchipelagoTypes.h"
@@ -145,7 +145,7 @@ void ArchipelagoConsoleWindow::DrawElement() {
     if (ImGui::InputText("##AP_MessageField", textEntryBuf, 1023, ImGuiInputTextFlags_EnterReturnsTrue)) {
         if (textEntryBuf[0] != '\0') {
             ArchipelagoConsole_SendMessage("> %s", textEntryBuf); // local echo
-            Archipelago::SendChat(textEntryBuf);                  // send to server
+            Archipelago::Instance->SendChat(textEntryBuf);        // send to server
         }
         textEntryBuf[0] = '\0';
         keepFocus = true;
@@ -159,6 +159,7 @@ void ArchipelagoConsoleWindow::DrawElement() {
     if (UIWidgets::Button("Send", UIWidgets::ButtonOptions().Color(THEME_COLOR).Size(ImVec2(0.0, 0.0)))) {
         if (textEntryBuf[0] != '\0') {
             ArchipelagoConsole_SendMessage("> %s", textEntryBuf);
+            Archipelago::Instance->SendChat(textEntryBuf);
         }
         textEntryBuf[0] = '\0';
         keepFocus = true;
@@ -222,7 +223,7 @@ void ArchipelagoStatusWindow::Draw() {
         return;
     }
 
-    int status = CVarGetInteger("gArchipelago.ConnectionStatus", 0);
+    int status = Archipelago::Instance->GetState();
 
     // Track when we become connected for fade-out timer
     if (status == 4 && mLastStatus != 4) {

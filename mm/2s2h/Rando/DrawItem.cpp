@@ -2,7 +2,7 @@
 #include "2s2h/Enhancements/FrameInterpolation/FrameInterpolation.h"
 #include "2s2h/ShipInit.hpp"
 #include "2s2h/Rando/DrawFuncs.h"
-#include "2s2h/Network/Archipelago/ArchipelagoBridge.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include "2s2h_assets.h"
 
 extern "C" {
@@ -397,11 +397,11 @@ void DrawArchipelagoItem(RandoItemId randoItemId, RandoCheckId randoCheckId, Act
     }
     Matrix_Pop();
 
-    if (CVarGetInteger("gArchipelago.ShowExternal2ShipItem", 0) == 0) {
+    if (Archipelago::Instance->checkInfo.contains(randoCheckId)) {
         // If item name matches a local game item, also draw it (smaller and offset)
-        RandoItemId localItemId = ArchipelagoBridge::GetLocalItemFromArchipelagoCheck(randoCheckId);
-        if (localItemId != RI_NONE && localItemId != RI_UNKNOWN && localItemId != RI_ARCHIPELAGO_JUNK &&
-            localItemId != RI_ARCHIPELAGO_PROGRESSIVE && localItemId != RI_ARCHIPELAGO_USEFUL &&
+        RandoItemId localItemId =
+            Archipelago::Instance->GetRandoItemIdFromNetworkItem(Archipelago::Instance->checkInfo[randoCheckId]);
+        if (localItemId != RI_NONE && localItemId != RI_UNKNOWN && !Archipelago::IsAPItem(localItemId) &&
             localItemId != RI_TRAP) {
             Matrix_Push();
             Matrix_Scale(0.4f, 0.4f, 0.4f, MTXMODE_APPLY);
@@ -506,12 +506,6 @@ void DrawSparkles(RandoItemId randoItemId, Actor* actor) {
 }
 
 void Rando::DrawItem(RandoItemId randoItemId, RandoCheckId randoCheckId, Actor* actor) {
-    // Validate item ID
-    if (randoItemId < 0 || randoItemId >= RI_MAX) {
-        SPDLOG_ERROR("[DrawItem] Invalid randoItemId: {} (must be 0-{})", (int)randoItemId, RI_MAX - 1);
-        return;
-    }
-
     // Apply hilites with actor world pos before drawing
     if (actor != NULL) {
         func_800B8118(actor, gPlayState, 0);
@@ -589,19 +583,26 @@ void Rando::DrawItem(RandoItemId randoItemId, RandoCheckId randoCheckId, Actor* 
         case RI_TIME_PROGRESSIVE:
             DrawClock(randoItemId, actor);
             break;
+        // Progressive items for the player are converted before they make it here, so if it's
+        // still a progressive item at this point it's for another player, render the base item
         case RI_PROGRESSIVE_LULLABY:
-        case RI_PROGRESSIVE_MAGIC:
-        case RI_PROGRESSIVE_BOW:
-        case RI_PROGRESSIVE_BOMB_BAG:
-        case RI_PROGRESSIVE_SWORD:
-        case RI_PROGRESSIVE_WALLET: {
-            RandoItemId convertedItemId = Rando::ConvertItem(randoItemId, randoCheckId);
-            if (convertedItemId == RI_JUNK) {
-                convertedItemId = Rando::CurrentJunkItem(randoCheckId);
-            }
-            Rando::DrawItem(convertedItemId, randoCheckId, actor);
+            Rando::DrawItem(RI_SONG_LULLABY, randoCheckId, actor);
             break;
-        }
+        case RI_PROGRESSIVE_MAGIC:
+            Rando::DrawItem(RI_SINGLE_MAGIC, randoCheckId, actor);
+            break;
+        case RI_PROGRESSIVE_BOW:
+            Rando::DrawItem(RI_BOW, randoCheckId, actor);
+            break;
+        case RI_PROGRESSIVE_BOMB_BAG:
+            Rando::DrawItem(RI_BOMB_BAG_20, randoCheckId, actor);
+            break;
+        case RI_PROGRESSIVE_SWORD:
+            Rando::DrawItem(RI_SWORD_KOKIRI, randoCheckId, actor);
+            break;
+        case RI_PROGRESSIVE_WALLET:
+            Rando::DrawItem(RI_WALLET_ADULT, randoCheckId, actor);
+            break;
         case RI_SOUL_ENEMY_ALIEN:
         case RI_SOUL_ENEMY_ARMOS:
         case RI_SOUL_ENEMY_BAD_BAT:
@@ -701,10 +702,7 @@ void Rando::DrawItem(RandoItemId randoItemId, RandoCheckId randoCheckId, Actor* 
         case RI_UNKNOWN:
             break;
         default:
-            // Bounds check to prevent crashes from invalid item IDs
-            if (randoItemId >= 0 && randoItemId < RI_MAX) {
-                GetItem_Draw(gPlayState, Rando::StaticData::Items[randoItemId].drawId);
-            }
+            GetItem_Draw(gPlayState, Rando::StaticData::Items[randoItemId].drawId);
             break;
     }
 

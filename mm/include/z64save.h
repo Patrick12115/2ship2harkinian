@@ -393,10 +393,6 @@ typedef struct ArchiSaveInfo {
     u32 receivedItemCount;
     u32 checkedLocationCount;
 
-    // Persisted checked locations bitset.
-    // For now, locationId is treated as 0..RC_MAX-1 (RandoCheckId).
-    u8 checkedLocations[(RC_MAX + 7) / 8];
-
     // Room for future without breaking layout again
     u8 reserved[128];
 

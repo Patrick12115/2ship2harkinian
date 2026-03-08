@@ -334,6 +334,9 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
         case RI_GS_TOKEN_SWAMP:
         case RI_GS_TOKEN_OCEAN:
         case RI_TRIFORCE_PIECE:
+        case RI_ARCHIPELAGO_JUNK:
+        case RI_ARCHIPELAGO_PROGRESSIVE:
+        case RI_ARCHIPELAGO_USEFUL:
             if (hasObtainedCheck) {
                 return false;
             }
@@ -651,12 +654,6 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
 }
 
 RandoItemId Rando::ConvertItem(RandoItemId randoItemId, RandoCheckId randoCheckId) {
-    // Archipelago placeholders must never be converted or treated as real items.
-    if (randoItemId == RI_ARCHIPELAGO_PROGRESSIVE || randoItemId == RI_ARCHIPELAGO_USEFUL ||
-        randoItemId == RI_ARCHIPELAGO_JUNK) {
-        return randoItemId;
-    }
-
     if (IsItemObtainable(randoItemId, randoCheckId)) {
         switch (randoItemId) {
             case RI_TIME_PROGRESSIVE: {

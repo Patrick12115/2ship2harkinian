@@ -12,7 +12,7 @@
 #include "2s2h/ShipUtils.h"
 #include "2s2h/Rando/Rando.h"
 #include "2s2h_assets.h"
-#include "2s2h/Network/Archipelago/ArchipelagoBridge.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 
 extern "C" {
 extern s16 D_801CFF94[250];
@@ -272,8 +272,8 @@ std::map<RandoItemId, RandoStaticItem> Items = {
     RI(RI_WOODFALL_MAP,               "the",  "Woodfall Map",               RITYPE_LESSER,          ITEM_DUNGEON_MAP,                GI_MAP,                      GID_DUNGEON_MAP),
     RI(RI_WOODFALL_SMALL_KEY,         "a",    "Woodfall Small Key",         RITYPE_SMALL_KEY,       ITEM_KEY_SMALL,                  GI_KEY_SMALL,                GID_KEY_SMALL),
     RI(RI_WOODFALL_STRAY_FAIRY,       "a",    "Woodfall Stray Fairy",       RITYPE_STRAY_FAIRY,     ITEM_STRAY_FAIRIES,              GI_STRAY_FAIRY,              GID_NONE),
-    RI(RI_ARCHIPELAGO_PROGRESSIVE,    "a",    "Progressive Item",           RITYPE_MAJOR,           ITEM_NONE,                       GI_NONE,                     GID_NONE),
-    RI(RI_ARCHIPELAGO_USEFUL,         "a",    "Useful Item",                RITYPE_LESSER,          ITEM_NONE,                       GI_NONE,                     GID_NONE),
+    RI(RI_ARCHIPELAGO_PROGRESSIVE,    "",     "Progressive Item",           RITYPE_MAJOR,           ITEM_NONE,                       GI_NONE,                     GID_NONE),
+    RI(RI_ARCHIPELAGO_USEFUL,         "",     "Useful Item",                RITYPE_LESSER,          ITEM_NONE,                       GI_NONE,                     GID_NONE),
     RI(RI_ARCHIPELAGO_JUNK,           "",     "Junk Item",                  RITYPE_JUNK,            ITEM_NONE,                       GI_NONE,                     GID_NONE),
 };
 
@@ -326,33 +326,6 @@ RandoItemId GetItemIdFromName(const char* name) {
     return RI_UNKNOWN;
 }
 
-RandoItemId GetItemIdFromDisplayName(const char* name) {
-    if (!name)
-        return RI_UNKNOWN;
-
-    auto skipArticle = [](const char* s) {
-        while (*s == ' ')
-            s++;
-        if (!strncasecmp(s, "a ", 2))
-            return s + 2;
-        if (!strncasecmp(s, "an ", 3))
-            return s + 3;
-        if (!strncasecmp(s, "the ", 4))
-            return s + 4;
-        return s;
-    };
-
-    const char* stripped = skipArticle(name);
-
-    for (auto& [randoItemId, randoStaticItem] : Items) {
-        if (!strcasecmp(stripped, randoStaticItem.name)) {
-            return randoItemId;
-        }
-    }
-
-    return RI_UNKNOWN;
-}
-
 RandoItemId GetItemIdFromVanillaItemId(u32 itemId) {
     for (auto& [randoItemId, randoStaticItem] : Items) {
         if (randoStaticItem.itemId == itemId) {
@@ -388,10 +361,6 @@ u8 GetIconForZMessage(RandoItemId randoItemId) {
             return GI_MAGIC_JAR_BIG;
         case RI_GREAT_SPIN_ATTACK:
             return GI_SWORD_KOKIRI;
-        case RI_ARCHIPELAGO_PROGRESSIVE:
-        case RI_ARCHIPELAGO_USEFUL:
-        case RI_ARCHIPELAGO_JUNK:
-            return 0xFE; // No icon for Archipelago items (text-only message)
         default:
             break;
     }
@@ -599,12 +568,11 @@ std::string GetItemName(RandoItemId randoItemId, bool includeArticle, RandoCheck
     std::string result;
 
     // Check if this is an Archipelago item and return custom text if available
-    if (randoItemId == RI_ARCHIPELAGO_PROGRESSIVE || randoItemId == RI_ARCHIPELAGO_USEFUL ||
-        randoItemId == RI_ARCHIPELAGO_JUNK) {
-        std::string archiText = ArchipelagoBridge::GetArchipelagoItemText(randoCheckId);
-        if (!archiText.empty()) {
-            return archiText; // Plain text, no color codes (color codes are added in CheckQueue for messages)
-        }
+    if (Archipelago::IsAPItem(randoItemId) && randoCheckId != RC_UNKNOWN) {
+        std::string playerName;
+        std::string itemName;
+        Archipelago::Instance->GetArchipelagoItemInfo(randoCheckId, playerName, itemName);
+        return playerName + "'s " + itemName;
     }
 
     if (includeArticle && !Ship_IsCStringEmpty(Rando::StaticData::Items[randoItemId].article)) {

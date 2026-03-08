@@ -291,13 +291,7 @@ static void DrawGeneralTab() {
         ImGui::BeginDisabled();
     }
 
-    if (UIWidgets::CVarCheckbox("Enable Rando (Randomizes new files upon creation)", "gRando.Enabled")) {
-        // If Rando was just enabled, disable Archipelago
-        if (CVarGetInteger("gRando.Enabled", 0)) {
-            CVarSetInteger("gArchipelago.Enabled", 0);
-            CVarSave();
-        }
-    }
+    UIWidgets::CVarCheckbox("Enable Rando (Randomizes new files upon creation)", "gRando.Enabled");
 
     if (archipelagoEnabled) {
         ImGui::EndDisabled();
