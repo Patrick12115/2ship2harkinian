@@ -60,6 +60,7 @@ class Archipelago {
     void GetArchipelagoItemInfo(RandoCheckId checkId, std::string& playerName, std::string& itemName);
     RandoItemId GetRandoItemIdFromNetworkItem(NetworkItem networkItem, bool convertOtherPlayerItems = false);
     bool IsCheckForSameGame(RandoCheckId checkId);
+    void UpdateDeathLinkTag();
 };
 
 #endif // __cplusplus

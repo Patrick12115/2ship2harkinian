@@ -74,6 +74,11 @@ void ConsoleLogo_Init(GameState*);
 // Storing statically here, because APClient isn't useable from header...
 static std::unique_ptr<APClient> sAPClient;
 
+static bool sPendingDeathLink = false;
+static bool sSentDeathLinkThisDeath = false;
+static std::string sPendingDeathLinkSource;
+static std::string sPendingDeathLinkCause;
+
 static std::string GetCertPath() {
     std::filesystem::path base =
         std::filesystem::absolute(Ship::Context::GetInstance()->GetAppDirectoryPath()).lexically_normal();
@@ -157,6 +162,10 @@ void Archipelago::Reset() {
     slotData.clear();
     incomingCheckedLocations.clear();
     incomingItems.clear();
+    sPendingDeathLink = false;
+    sSentDeathLinkThisDeath = false;
+    sPendingDeathLinkSource.clear();
+    sPendingDeathLinkCause.clear();
 }
 
 void Archipelago::Enable() {
@@ -408,37 +417,17 @@ void Archipelago::RegisterHooks() {
     });
 
     sAPClient->set_bounced_handler([](const nlohmann::json data) {
-        // if (sDisconnecting || !data.contains("tags")) {
-        //     return;
-        // }
-
-        // std::list<std::string> tags = data["tags"];
-        // const bool deathLink = (std::find(tags.begin(), tags.end(), "DeathLink") != tags.end());
-        // if (!deathLink || !data.contains("data")) {
-        //     return;
-        // }
-
-        // // Mirror SoH logic shape, but keep gameplay in Bridge.
-        // // NOTE: AP "source" in SoH is compared vs apClient->get_slot() (string).
-        // try {
-        //     const std::string source = data["data"]["source"];
-        //     const std::string cause = data["data"]["cause"];
-
-        //     // Don�t self-kill if it�s our own bounce (SoH checks this).
-        //     if (sClient && source != sClient->get_slot()) {
-        //         // Apply only if in-game (SoH does).
-        //         if (ArchipelagoBridge::IsInGame()) {
-        //             // Queue to bridge; bridge applies on main thread via Tick()
-        //             ArchipelagoBridge::EnqueueDeathLink(source, cause);
-
-        //             ArchipelagoConsole_SendMessage("[LOG] Received death link from %s. Cause: %s", source.c_str(),
-        //                                            cause.c_str());
-        //             sIsDeathLinkedDeath = true;
-        //         }
-        //     }
-        // } catch (...) {
-        //     // ignore malformed bounce payload
-        // }
+        std::list<std::string> tags = data["tags"].get<std::list<std::string>>();
+        if (std::find(tags.begin(), tags.end(), "DeathLink") == tags.end()) {
+            return;
+        }
+        const std::string source = data["data"]["source"].get<std::string>();
+        if (source == sAPClient->get_slot()) {
+            return;
+        }
+        sPendingDeathLink = true;
+        sPendingDeathLinkSource = source;
+        sPendingDeathLinkCause = data["data"].value("cause", "");
     });
 }
 
@@ -523,6 +512,31 @@ void Archipelago::OnGameTick() {
         ShipInit::Init("IS_RANDO");
         isSaveSynced = true;
         SPDLOG_INFO("[AP][Bridge] Save synced with server.");
+    }
+
+    if (IS_ARCHI && gPlayState && isSaveSynced && CVarGetInteger("gArchipelago.DeathLink", 0)) {
+        s16 currentHealth = gSaveContext.save.saveInfo.playerData.health;
+
+        if (sPendingDeathLink && currentHealth > 0) {
+            gSaveContext.save.saveInfo.playerData.health = 0;
+            gPlayState->damagePlayer(gPlayState, -1);
+            std::string prefix = sPendingDeathLinkSource + " died.";
+            Notification::Emit(
+                { .prefix = prefix.c_str(), .message = "Cause:", .suffix = sPendingDeathLinkCause.c_str() });
+            ArchipelagoConsole_SendMessage("[LOG] %s Cause: %s", prefix.c_str(), sPendingDeathLinkCause.c_str());
+            sPendingDeathLink = false;
+            sSentDeathLinkThisDeath = true;
+        } else if (currentHealth == 0 && !sSentDeathLinkThisDeath) {
+            sAPClient->Bounce({ { "time", (double)time(nullptr) },
+                                { "source", sAPClient->get_slot() },
+                                { "cause", "Met with a terrible fate." } },
+                              {}, {}, { "DeathLink" });
+            sSentDeathLinkThisDeath = true;
+            Notification::Emit({ .message = "Sending Death Link" });
+            ArchipelagoConsole_SendMessage("[LOG] Sent death link.");
+        } else if (currentHealth > 0) {
+            sSentDeathLinkThisDeath = false;
+        }
     }
 
     if (IS_ARCHI && gPlayState && isSaveSynced) {
@@ -665,6 +679,17 @@ void Archipelago::ProcessItemQueue() {
 void Archipelago::SendLocationCheck(RandoCheckId randoCheckId) {
     incomingCheckedLocations.insert(randoCheckId);
     sAPClient->LocationChecks({ randoCheckId });
+}
+
+void Archipelago::UpdateDeathLinkTag() {
+    if (!sAPClient) {
+        return;
+    }
+    std::list<std::string> tags;
+    if (CVarGetInteger("gArchipelago.DeathLink", 0)) {
+        tags.push_back("DeathLink");
+    }
+    sAPClient->ConnectUpdate(false, 0, true, tags);
 }
 
 bool Archipelago::IsCheckForSameGame(RandoCheckId checkId) {

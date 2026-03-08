@@ -92,7 +92,7 @@ static void DrawArchipelagoMenu() {
     if (UIWidgets::CVarCheckbox(
             "Death Link", "gArchipelago.DeathLink",
             UIWidgets::CheckboxOptions().Color(THEME_COLOR).Tooltip("You die, others die.\nOthers die, you die!"))) {
-        // Archipelago::SetDeathLinkTag();
+        Archipelago::Instance->UpdateDeathLinkTag();
     }
 
     UIWidgets::CVarSliderFloat("Console Scale", "gArchipelago.Console.Scale",
