@@ -667,6 +667,14 @@ void Archipelago::SendLocationCheck(RandoCheckId randoCheckId) {
     sAPClient->LocationChecks({ randoCheckId });
 }
 
+bool Archipelago::IsCheckForSameGame(RandoCheckId checkId) {
+    if (!sAPClient || !checkInfo.count(checkId)) {
+        return false;
+    }
+    int player = checkInfo[checkId].player;
+    return player == sAPClient->get_player_number() || sAPClient->get_player_game(player) == AP_GAME_NAME;
+}
+
 void Archipelago::GetArchipelagoItemInfo(RandoCheckId checkId, std::string& playerName, std::string& itemName) {
     if (checkInfo.count(checkId)) {
         auto networkItem = checkInfo[checkId];

@@ -397,8 +397,9 @@ void DrawArchipelagoItem(RandoItemId randoItemId, RandoCheckId randoCheckId, Act
     }
     Matrix_Pop();
 
-    if (Archipelago::Instance->checkInfo.contains(randoCheckId)) {
-        // If item name matches a local game item, also draw it (smaller and offset)
+    if (Archipelago::Instance->checkInfo.contains(randoCheckId) &&
+        Archipelago::Instance->IsCheckForSameGame(randoCheckId)) {
+        // If item name matches a 2ship item, also draw it (smaller and offset)
         RandoItemId localItemId =
             Archipelago::Instance->GetRandoItemIdFromNetworkItem(Archipelago::Instance->checkInfo[randoCheckId]);
         if (localItemId != RI_NONE && localItemId != RI_UNKNOWN && !Archipelago::IsAPItem(localItemId) &&
