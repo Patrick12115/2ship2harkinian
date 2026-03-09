@@ -10,10 +10,45 @@ jobs:
   package-apworld:
     runs-on: ubuntu-22.04
     steps:
-    - name: Git Checkout
+    - name: Checkout Archipelago Fork
       uses: actions/checkout@v4
+      with:
+        repository: Patrick12115/Archipelago
+        ref: 2ship-apworld
+        sparse-checkout: |
+          worlds/mm_2ship
+          worlds/Files.py
     - name: Package APWorld
-      run: zip -r mm_2ship.apworld mm_2ship/
+      run: |
+        python3 - <<'EOF'
+        import json, zipfile, os
+
+        world_dir = "worlds/mm_2ship"
+        apworld_path = "mm_2ship.apworld"
+
+        with open(os.path.join(world_dir, "archipelago.json"), "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+
+        import re
+        with open("worlds/Files.py", "r", encoding="utf-8") as f:
+            container_version = int(re.search(r"^container_version:\s*int\s*=\s*(\d+)", f.read(), re.MULTILINE).group(1))
+
+        manifest["compatible_version"] = container_version
+        manifest["version"] = container_version
+
+        with zipfile.ZipFile(apworld_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+            for root, dirs, files in os.walk(world_dir):
+                dirs[:] = [d for d in dirs if d != "__pycache__"]
+                for file in files:
+                    if file.endswith(".pyc"):
+                        continue
+                    full_path = os.path.join(root, file)
+                    arc_path = os.path.join("mm_2ship", os.path.relpath(full_path, world_dir))
+                    if file == "archipelago.json":
+                        zf.writestr(arc_path, json.dumps(manifest))
+                    else:
+                        zf.write(full_path, arc_path)
+        EOF
     - name: Upload APWorld
       uses: actions/upload-artifact@v4
       with:
