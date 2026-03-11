@@ -160,6 +160,11 @@ static RegisterShipInitFunc refreshInitFunc(
     { "IS_RANDO" });
 
 RandoItemId Rando::CurrentJunkItem(RandoCheckId randoCheckId) {
+    // Safety check: if no junk items are obtainable, return green rupee as fallback
+    if (obtainableJunkItems.empty()) {
+        return RI_RUPEE_GREEN;
+    }
+
     if (CVarGetInteger("gRando.JunkItems", 0) == 0) {
         Ship_Random_Seed(gSaveContext.save.shipSaveInfo.rando.finalSeed + randoCheckId +
                          (gPlayState->gameplayFrames / 30));
@@ -329,6 +334,9 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
         case RI_GS_TOKEN_SWAMP:
         case RI_GS_TOKEN_OCEAN:
         case RI_TRIFORCE_PIECE:
+        case RI_ARCHIPELAGO_JUNK:
+        case RI_ARCHIPELAGO_PROGRESSIVE:
+        case RI_ARCHIPELAGO_USEFUL:
             if (hasObtainedCheck) {
                 return false;
             }
@@ -596,6 +604,8 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
                 return false;
             }
             return true;
+        case RI_OCARINA:
+            return INV_CONTENT(ITEM_OCARINA_OF_TIME) != ITEM_OCARINA_OF_TIME;
         case RI_OCARINA_BUTTON_A:
         case RI_OCARINA_BUTTON_C_DOWN:
         case RI_OCARINA_BUTTON_C_LEFT:

@@ -35,6 +35,9 @@
 #include "DeveloperTools/DLViewer.h"
 #include "DeveloperTools/MessageViewer.h"
 
+#include "Network/Archipelago/ArchipelagoConsoleWindow.h"
+#include "Network/Archipelago/ArchipelagoStatusWindow.h"
+
 namespace BenGui {
 // MARK: - Delegates
 
@@ -67,6 +70,8 @@ std::shared_ptr<TimesplitsSettingsWindow> mTimesplitsSettingsWindow;
 std::shared_ptr<InputViewer> mInputViewer;
 std::shared_ptr<InputViewerSettingsWindow> mInputViewerSettings;
 std::shared_ptr<BenModalWindow> mModalWindow;
+std::shared_ptr<ArchipelagoConsoleWindow> mArchipelagoConsoleWindow;
+std::shared_ptr<ArchipelagoStatusWindow> mArchipelagoStatusWindow;
 
 UIWidgets::Colors GetMenuThemeColor() {
     return mBenMenu->GetMenuThemeColor();
@@ -184,6 +189,15 @@ void SetupGuiElements() {
     mModalWindow = std::make_shared<BenModalWindow>("gWindows.ModalWindow", "Modal Window");
     gui->AddGuiWindow(mModalWindow);
     mModalWindow->Show();
+
+    mArchipelagoConsoleWindow = std::make_shared<ArchipelagoConsoleWindow>("gWindows.ArchipelagoConsole",
+                                                                           "Archipelago Console", ImVec2(520, 600));
+    gui->AddGuiWindow(mArchipelagoConsoleWindow);
+
+    mArchipelagoStatusWindow =
+        std::make_shared<ArchipelagoStatusWindow>("gWindows.ArchipelagoStatus", "Archipelago Status");
+    gui->AddGuiWindow(mArchipelagoStatusWindow);
+    mArchipelagoStatusWindow->Show();
 }
 
 void Destroy() {
@@ -215,6 +229,7 @@ void Destroy() {
     mItemTrackerSettingsWindow = nullptr;
     mInputViewer = nullptr;
     mInputViewerSettings = nullptr;
+    mArchipelagoConsoleWindow = nullptr;
 }
 
 void RegisterPopup(std::string title, std::string message, std::string button1, std::string button2,

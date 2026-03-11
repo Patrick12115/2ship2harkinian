@@ -1,4 +1,5 @@
 #include "ActorBehavior.h"
+#include "2s2h/Network/Archipelago/Archipelago.h"
 #include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/CustomMessage/CustomMessage.h"
 #include "2s2h/Rando/MiscBehavior/Traps.h"
@@ -66,12 +67,25 @@ s32 EnGirlA_RandoCanBuyFunc(PlayState* play, EnGirlA* enGirlA) {
 void EnGirlA_RandoBuyFunc(PlayState* play, EnGirlA* enGirlA) {
     auto& randoSaveCheck = RANDO_SAVE_CHECKS[enGirlA->actor.world.rot.z];
     RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)enGirlA->actor.world.rot.z);
-    randoSaveCheck.obtained = true;
+
+    // Deduct rupees
     Rupees_ChangeBy(-play->msgCtx.unk1206C);
-    if (randoItemId == RI_TRAP) {
-        RollTrapType();
+
+    if (IS_ARCHI && Archipelago::Instance->IsConnected() &&
+        !randoSaveCheck.obtained) { // For AP, let AP handle the first time give
+        Archipelago::Instance->SendLocationCheck((RandoCheckId)enGirlA->actor.world.rot.z);
+        randoSaveCheck.cycleObtained = true;
+        randoSaveCheck.obtained = true;
+    } else { // Otherwise, give immediately
+        randoSaveCheck.cycleObtained = true;
+        randoSaveCheck.obtained = true;
+
+        if (randoItemId == RI_TRAP) {
+            RollTrapType();
+        }
+
+        Rando::GiveItem(randoItemId);
     }
-    Rando::GiveItem(randoItemId);
 }
 
 void EnGirlA_RandoBuyFanfareFunc(PlayState* play, EnGirlA* enGirlA) {

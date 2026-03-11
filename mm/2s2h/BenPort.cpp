@@ -44,6 +44,8 @@
 #include "Enhancements/crowd-control/CrowdControl.h"
 CrowdControl* CrowdControl::Instance;
 #endif
+#include "2s2h/Network/Archipelago/Archipelago.h"
+Archipelago* Archipelago::Instance;
 
 #include <libultraship/libultraship.h>
 #include <libultraship/controller/controldeck/ControlDeck.h>
@@ -710,6 +712,7 @@ extern "C" void InitOTR() {
     OTRGlobals::Instance = new OTRGlobals();
     GameInteractor::Instance = new GameInteractor();
     AudioCollection::Instance = new AudioCollection();
+    Archipelago::Instance = new Archipelago();
     LoadGuiTextures();
     BenGui::SetupGuiElements();
     ShipInit::InitAll();
@@ -765,6 +768,8 @@ extern "C" void DeinitOTR() {
     CrowdControl::Instance->Disable();
     CrowdControl::Instance->Shutdown();
 #endif
+
+    Archipelago::Instance->Disable();
 
     // Destroying gui here because we have shared ptrs to LUS objects which output to SPDLOG which is destroyed before
     // these shared ptrs.

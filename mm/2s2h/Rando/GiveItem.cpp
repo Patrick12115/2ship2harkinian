@@ -375,6 +375,9 @@ void Rando::GiveItem(RandoItemId randoItemId) {
         case RI_SONG_INVERTED_TIME:
             Flags_SetRandoInf(RANDO_INF_OBTAINED_SONG_INVERTED_TIME);
             break;
+        case RI_ARCHIPELAGO_PROGRESSIVE:
+        case RI_ARCHIPELAGO_USEFUL:
+        case RI_ARCHIPELAGO_JUNK:
         case RI_JUNK:
         case RI_NONE:
             break;
